@@ -24,7 +24,7 @@ public class CardPreviewHandler : MonoBehaviour, IPointerEnterHandler, IPointerE
         }
 
         // add a scaled version of the card to the preview panel
-        Transform clone = CardPrefabFactory.CreateCardPrefab(CardFactory.CreateCard(GetComponent<CardLink>().card.CardCodename));
+        Transform clone = CardPrefabFactory.CreateCardPrefab(CardFactory.CreateCard(GetComponent<CardLink>().Card.CardCodename));
         clone.localScale = new Vector3(2,2); // TODO - remove hard coding, work it out from sizes?
         clone.SetParent(CardPreviewPanel);
         clone.localPosition = new Vector3(0,0,0);

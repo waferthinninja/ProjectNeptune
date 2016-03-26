@@ -10,13 +10,15 @@ public class Faction {
     public int StartingCredits { get; private set; }
     public int ClicksPerTurn { get; private set; }
     public List<Shipyard> Shipyards { get; private set; }
+    public Homeworld Homeworld { get; private set; }
 
-    public Faction(string factionName, int startingHandSize, int startingCredits, int clicksPerTurn, List<Shipyard> shipyards)
+    public Faction(string factionName, int startingHandSize, int startingCredits, int clicksPerTurn, List<Shipyard> shipyards, Homeworld homeworld)
     {
         FactionName = factionName;
         StartingHandSize = startingHandSize;
         StartingCredits = startingCredits;
         ClicksPerTurn = clicksPerTurn;
         Shipyards = shipyards;
+        Homeworld = homeworld;
     }
 }

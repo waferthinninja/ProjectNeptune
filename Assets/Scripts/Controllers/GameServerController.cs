@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine.Networking;
 using System;
+using UnityEngine.UI;
 
 public class GameServerController : NetworkBehaviour {
 
     public GameObject _lobbyController;
+    public Transform _serverMessagePrefab;
+    public Transform _serverPanelContent;
 
     public override void OnStartServer()
     {
@@ -13,11 +16,40 @@ public class GameServerController : NetworkBehaviour {
         base.OnStartServer(); //base is empty
         
         NetworkServer.RegisterHandler((short)MessageTypes.MessageType.PLAYER_READY, OnPlayerReadyMessage);
-        NetworkServer.RegisterHandler((short)MessageTypes.MessageType.SUBMIT_ACTIONS, OnSubmitActionsMessage);
-
+        NetworkServer.RegisterHandler((short)MessageTypes.MessageType.SEND_ACTIONS, OnSendActionsMessage);
     }
 
-    void OnSubmitActionsMessage(NetworkMessage netMsg)
+    private void ServerMessage(string message)
+    {
+        var serverMessage = Instantiate(_serverMessagePrefab);
+        Text t = (Text)serverMessage.GetComponent(typeof(Text));
+        t.text = message;
+        serverMessage.SetParent(_serverPanelContent);
+    }
+
+    private void ServerLog(string message)
+    {
+        Debug.Log(message);
+        ServerMessage(message);        
+    }
+
+    private void ServerLog(string message, Game game)
+    {
+        ServerLog(string.Format("Game {0} - {1}", game.GameNumber, message));
+    }
+
+    private void ServerLogError(string message)
+    {
+        Debug.LogError(message);
+        ServerMessage(string.Format("<color=red>{0}</color>", message));        
+    }
+
+    private void ServerLogError(string message, Game game)
+    {
+        ServerLogError(string.Format("Game {0} - {1}", game.GameNumber, message));
+    }
+
+    void OnSendActionsMessage(NetworkMessage netMsg)
     {
         // determine player and game from connection
         int connectionId = netMsg.conn.connectionId;
@@ -25,19 +57,19 @@ public class GameServerController : NetworkBehaviour {
         Game game = GetGameFromConnection(connectionId);
 
         // read the message
-        var msg = netMsg.ReadMessage<MessageTypes.SubmitActionsMessage>();
+        var msg = netMsg.ReadMessage<MessageTypes.SendActionsMessage>();
         
         // store in the game object
         if (game.Host == player)
         {
             game.SubmitHostActions(msg.actionData);
-            Debug.Log(string.Format("Game {0} - host {1} has submitted actions", game.GameNumber, game.Host.Name));
+            ServerLog(string.Format("Host {0} has submitted actions", game.Host.Name), game);
         }
 
         if (game.Challenger == player)
         {
             game.SubmitChallengerActions(msg.actionData);
-            Debug.Log(string.Format("Game {0} - challenger {1} has submitted actions", game.GameNumber, game.Challenger.Name));
+            ServerLog(string.Format("Challenger {0} has submitted actions", game.Challenger.Name), game);
         }
         
         if (game.BothActionsSubmitted())
@@ -45,7 +77,7 @@ public class GameServerController : NetworkBehaviour {
             // if both players now submitted, process actions, advance the game state
             ProcessActions(game);
             game.StartLogisticsResolutionPhase();
-            SendGameStateToPlayers(game);
+            //SendGameStateToPlayers(game);
 
             // advance the game to the combat planning stage 
             // dont send this to clients, they will advance themselves after 
@@ -63,6 +95,18 @@ public class GameServerController : NetworkBehaviour {
     {
         ProcessActionsForPlayer(game, game.HostActionData, game.Host, game.Challenger);
         ProcessActionsForPlayer(game, game.ChallengerActionData, game.Challenger, game.Host);
+
+        // send actions to opponent - should probably have filtered out bad actions by this point
+        SendActionsToPlayer(game.HostActionData, game.Challenger);
+        SendActionsToPlayer(game.ChallengerActionData, game.Host);
+
+    }
+
+    private void SendActionsToPlayer(string actionData, Player player)
+    {
+        var actionMsg = new MessageTypes.SendActionsMessage();
+        actionMsg.actionData = actionData;
+        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.SEND_ACTIONS, actionMsg);
     }
 
     private void ProcessActionsForPlayer(Game game, string actionData, Player player, Player opponent)
@@ -72,7 +116,6 @@ public class GameServerController : NetworkBehaviour {
         {
             ProcessAction(data[i], game, player, opponent);
         }
-
     }
 
     private void PutPlayerInWaitMode(Player player)
@@ -117,24 +160,42 @@ public class GameServerController : NetworkBehaviour {
                 ProcessClickForCreditAction(player, game);
                 break;
             case ActionType.HOST_SHIP:
-                string cardId = actionData[1];
+                string shipId = actionData[1];
                 string shipyardId = actionData[2];
-                ProcessHostShipAction(player, opponent, game, cardId, shipyardId);
+                CardCodename cardCodename = (CardCodename)Enum.Parse(typeof(CardCodename), actionData[3]);
+                ProcessHostShipAction(player, opponent, game, shipId, shipyardId, cardCodename);
                 break;
             case ActionType.DEPLOY_SHIP:
-                cardId = actionData[1];
+                shipId = actionData[1];
+                shipyardId = actionData[2];                
+                ProcessDeployShipAction(player, opponent, game, shipId, shipyardId);
+                break;
+            case ActionType.ADVANCE_CONSTRUCTION:
+                shipId = actionData[1];
                 shipyardId = actionData[2];
-                ProcessDeployShipAction(player, opponent, game, cardId, shipyardId);
+                ProcessAdvanceConstructionAction(player, opponent, game, shipId, shipyardId);
                 break;
             default:
-                Debug.LogError("Unknown action type [" + actionType + "]");
+                ServerLogError("Unknown action type [" + actionType + "]", game);
                 break;
         }
     }
 
+    private void ProcessAdvanceConstructionAction(Player player, Player opponent, Game game, string shipId, string shipyardId)
+    {
+        Shipyard shipyard = FindCardIn(shipyardId, player.Shipyards);
+        Ship ship = shipyard.HostedShip;
+
+        // TODO - check that the shipId matches hosted card
+
+        ServerLog(string.Format("Advancing construction of {0}({1}) on {2}({3})", ship.CardName, ship.CardId, shipyard.CardName, shipyard.CardId ), game);
+        ship.AdvanceConstruction(1);
+        ChangeClicks(player, -1);
+    }
+
     private void ProcessDeployShipAction(Player player, Player opponent, Game game, string shipId, string shipyardId)
     {        
-        Shipyard shipyard = (Shipyard)FindCardByGuid(shipyardId, player.Shipyards);//player.Shipyards.Find(x => x.ShipyardId == shipyardId);
+        Shipyard shipyard = FindCardIn(shipyardId, player.Shipyards);
 
         // TODO - error if shipyard not found
 
@@ -144,38 +205,32 @@ public class GameServerController : NetworkBehaviour {
 
         // TODO - error if not complete
 
+        ServerLog(string.Format("Deploying {0}({1}) from {2}({3})", ship.CardName, ship.CardId, shipyard.CardName, shipyard.CardId), game);
         shipyard.ClearHostedCard();
-
         player.Ships.Add(ship);
     }
+    
+    private T FindCardIn<T>(string cardId, List<T> findIn) where T : Card
+    {
+        return findIn.Find(t => t.CardId == cardId);        
+    }
 
-    void ProcessHostShipAction(Player player, Player opponent, Game game, string shipId, string shipyardId)
+    void ProcessHostShipAction(Player player, Player opponent, Game game, string shipId, string shipyardId, CardCodename cardCodename)
     {
         // find card and shipyard by their id
-        Ship ship = (Ship)FindCardByGuid(shipId, player.Hand);//player.Hand.Find(x => x.CardId == cardId);
-
-        // TODO - error if card not in hand
+        PlayableCard card = FindCardIn(shipId, player.Hand);//player.Hand.Find(x => x.CardId == cardId);
+        Ship ship = (Ship)card;
+        // TODO - error if card not in hand - at the moment we just trust that it is
+        // TODO - error if cardCodename is not the same - need to verify this as we pass to opponent on trust otherwise
         
-        Shipyard shipyard = (Shipyard)FindCardByGuid(shipyardId, player.Shipyards);//player.Shipyards.Find(x => x.ShipyardId == shipyardId);
+        Shipyard shipyard = FindCardIn(shipyardId, player.Shipyards);//player.Shipyards.Find(x => x.ShipyardId == shipyardId);
 
         // TODO - error if shipyard not found
 
-        Debug.Log(string.Format("Trying to host {0}({1}) on {2}({3}) for {4}", ship.CardName, ship.CardId, shipyard.CardName, shipyard.CardId, player.Name));        
-        if (TryHost(player, ship, shipyard) == true)
+        ServerLog(string.Format("Trying to host {0}({1}) on {2}({3}) for {4}", ship.CardName, ship.CardId, shipyard.CardName, shipyard.CardId, player.Name), game);        
+        if (TryHost(game, player, ship, shipyard) == false)
         {
-            // inform the opponent to update their GUI
-            var msg = new MessageTypes.HostShipMessage();
-            msg.CardCodename = ship.CardCodename.ToString();
-            msg.cardId = shipId;
-            msg.shipyardId = shipyardId;
-            NetworkServer.SendToClient(opponent.ConnectionId, (short)MessageTypes.MessageType.HOST_SHIP, msg);
-
-            // and game log
-            SendGameLogToPlayer(opponent, string.Format("{0} hosts {1} on {2}", player.Name, ship.CardName, shipyard.CardName));
-        }
-        else
-        {
-            Debug.Log(string.Format("Failed trying to host {0}({1}) on {2}({3}) for {4}", ship.CardName, ship.CardId, shipyard.CardName, shipyard.CardId, player.Name));
+            ServerLogError(string.Format("Failed trying to host {0}({1}) on {2}({3}) for {4}", ship.CardName, ship.CardId, shipyard.CardName, shipyard.CardId, player.Name), game);
         }
     }
 
@@ -184,10 +239,10 @@ public class GameServerController : NetworkBehaviour {
         // update the credits
         player.ChangeCredits(change);
 
-        // inform the player of their new total
-        var creditsMsg = new MessageTypes.CreditsMessage();
-        creditsMsg.credits = player.Credits;
-        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.CREDITS, creditsMsg);
+        //// inform the player of their new total
+        //var creditsMsg = new MessageTypes.CreditsMessage();
+        //creditsMsg.credits = player.Credits;
+        //NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.CREDITS, creditsMsg);
     }
 
     private void ChangeClicks(Player player, int change)
@@ -195,40 +250,25 @@ public class GameServerController : NetworkBehaviour {
         // update the clicks
         player.ChangeClicks(change);
 
-        // inform the player of the new total
-        var clicksMsg = new MessageTypes.ClicksMessage();
-        clicksMsg.clicks = player.Clicks;
-        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.CLICKS, clicksMsg);
+        //// inform the player of the new total
+        //var clicksMsg = new MessageTypes.ClicksMessage();
+        //clicksMsg.clicks = player.Clicks;
+        //NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.CLICKS, clicksMsg);
     }
-
-    private Card FindCardByGuid(string cardId, List<Card> findIn)
+    
+    public bool TryHost(Game game, Player player, Ship ship, Shipyard shipyard)
     {
-        Card card = null;
-        for (int i = 0; i < findIn.Count; i++)
-        {
-            //Debug.Log(string.Format("Comparing {0} to {1}", findIn[i].CardId, cardId));
-            if (findIn[i].CardId == cardId)
-            {
-                card = findIn[i];
-            }
-        }
-
-        return card;
-    }
-
-    public bool TryHost(Player player, Ship shipCard, Shipyard shipyard)
-    {
-        Debug.Log(string.Format("TryHost player{0}, shipCard{1}, shipyard{2}", player.Name, shipCard.CardId, shipyard.CardId));
+        ServerLog(string.Format("TryHost player{0}, shipCard{1}, shipyard{2}", player.Name, ship.CardId, shipyard.CardId), game);
         // can only host one card
         if (shipyard.HostedShip != null)
             return false;
 
         // can only host ships up to a certain size
-        if (shipCard.Size > shipyard.MaxSize)
+        if (ship.Size > shipyard.MaxSize)
             return false;
 
         // need enough money
-        if (shipCard.BaseCost > player.Credits)
+        if (ship.BaseCost > player.Credits)
             return false;
 
         // hosting costs a click 
@@ -236,28 +276,26 @@ public class GameServerController : NetworkBehaviour {
             return false;
 
         // if we get here is all good, host away
-        shipyard.HostCard(shipCard);
-        shipCard.StartConstruction();
-        ChangeCredits(player, -shipCard.BaseCost);
-        ChangeClicks(player, -1);
-        shipCard.StartConstruction();
+        shipyard.HostCard(ship);
+        ship.StartConstruction();
+        ChangeCredits(player, -ship.BaseCost);
+        ChangeClicks(player, -1);        
         return true;
     }
 
     void ProcessClickForCardAction(Player player, Game game)
     {
-
         // if the game is not in the right phase log error and return
         if (game.GameState != GameState.LOGISTICS_PLANNING)
         {
-            Debug.LogError("Received a click for card message in the wrong game phase Player=" + player.Name);
+            ServerLogError("Received a click for card message in the wrong game phase Player=" + player.Name);
             return;
         }
 
         // does the player have a click remaining
         if (player.Clicks < 1)
         {
-            Debug.LogError("Received a click for card message from a player with no clicks remaining Player=" + player.Name);
+            ServerLogError("Received a click for card message from a player with no clicks remaining Player=" + player.Name);
             return;
         }
 
@@ -265,7 +303,7 @@ public class GameServerController : NetworkBehaviour {
         ChangeClicks(player, -1);
 
         // draw card for player
-        Card card = player.Deck.Draw();
+        PlayableCard card = player.Deck.Draw();
         player.Hand.Add(card);
 
         // send it to the client
@@ -276,7 +314,7 @@ public class GameServerController : NetworkBehaviour {
         NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.DRAWN_CARD, cardMsg);
 
         // send the action to the opponent for their game log
-        SendGameLogToPlayer(game.GetOpponent(player), string.Format("{0} clicks to draw", player.Name));
+        //SendGameLogToPlayer(game.GetOpponent(player), string.Format("{0} clicks to draw", player.Name));
     }
 
     void ProcessClickForCreditAction(Player player, Game game)
@@ -284,14 +322,14 @@ public class GameServerController : NetworkBehaviour {
         // if the game is not in the right phase log error and return
         if (game.GameState != GameState.LOGISTICS_PLANNING)
         {
-            Debug.LogError("Received a click for credit message in the wrong game phase Player=" + player.Name);
+            ServerLogError("Received a click for credit message in the wrong game phase Player=" + player.Name);
             return;
         }
 
         // does the player have a click remaining
         if (player.Clicks < 1)
         {
-            Debug.LogError("Received a click for credit message from a player with no clicks remaining Player=" + player.Name);
+            ServerLogError("Received a click for credit message from a player with no clicks remaining Player=" + player.Name);
             return;
         }
 
@@ -300,9 +338,6 @@ public class GameServerController : NetworkBehaviour {
 
         // add the credit
         ChangeCredits(player, 1);
-
-        // send the action to the opponent for their game log
-        SendGameLogToPlayer(game.GetOpponent(player), string.Format("{0} clicks for a credit", player.Name));
     }
 
     void OnPlayerReadyMessage(NetworkMessage netMsg)
@@ -315,49 +350,36 @@ public class GameServerController : NetworkBehaviour {
         if (game.Host == player)
         {
             game.HostReady();
-            Debug.Log(string.Format("Game {0} - host {1} is ready", game.GameNumber, game.Host.Name));
+            ServerLog(string.Format("Host {0} is ready", game.Host.Name), game);
         }
 
         if (game.Challenger == player)
         {
             game.ChallengerReady();
-            Debug.Log(string.Format("Game {0} - challenger {1} is ready", game.GameNumber, game.Challenger.Name));
+            ServerLog(string.Format("Challenger {0} is ready", game.Challenger.Name), game);
         }
         
         // if both players now ready, start the game proper
         if (game.BothPlayersReady())
         {
-            Debug.Log(string.Format("Game {0} - both players ready, setting up game", game.GameNumber));
+            ServerLog("Both players ready, setting up game", game);
 
             // set up the game
             game.Setup();
 
             // communicate starting state to the players
             SendStartingState(game);
-
-            // send turn message for log
-            SendTurnNumber(game);
         }
     }
-
-    private void SendTurnNumber(Game game)
-    {
-        string message = string.Format("<b>Turn {0}</b>", game.GameTurn);
-        SendGameLogToPlayer(game.Host, message);
-        SendGameLogToPlayer(game.Challenger, message);
-    }
-
+    
     private void SendStartingState(Game game)
     {
-        SendStartingStateToPlayer(game.Host, game.Challenger);
-        SendStartingStateToPlayer(game.Challenger, game.Host);
+        SendStartingStateToPlayer(game, game.Host, game.Challenger);
+        SendStartingStateToPlayer(game, game.Challenger, game.Host);
     }
 
-    private void SendStartingStateToPlayer(Player player, Player opponent)
+    private void SendStartingStateToPlayer(Game game, Player player, Player opponent)
     {
-        var logMsg = new MessageTypes.GameLogMessage();
-        logMsg.message = "Turn 1";
-
         var creditsMsg = new MessageTypes.CreditsMessage();
         creditsMsg.credits = player.Credits;
         NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.CREDITS, creditsMsg);
@@ -380,7 +402,7 @@ public class GameServerController : NetworkBehaviour {
             var cardMsg = new MessageTypes.DrawnCardMessage();            
             cardMsg.CardCodename = player.Hand[i].CardCodename.ToString();
             cardMsg.cardId = player.Hand[i].CardId;
-            Debug.Log(String.Format("Sending card {0}({1}) to {2}", cardMsg.CardCodename, cardMsg.cardId, player.Name));
+            ServerLog(String.Format("Sending card {0}({1}) to {2}", cardMsg.CardCodename, cardMsg.cardId, player.Name), game);
             cardMsg.cardsInDeck = player.Deck.GetCount();
             NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.DRAWN_CARD, cardMsg);
         }
@@ -403,6 +425,8 @@ public class GameServerController : NetworkBehaviour {
         }
 
         var msg = new MessageTypes.SetupGameMessage();
+        msg.playerName = player.Name;
+        msg.opponentName = opponent.Name;
         NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.SETUP_GAME, msg);
 
         var stateMsg = new MessageTypes.GameStateMessage();
@@ -412,7 +436,7 @@ public class GameServerController : NetworkBehaviour {
 
     private void SendGameLogToPlayer(Player player, string message)
     {
-        Debug.Log(string.Format("Sending game log message '{0}' to {1}", message, player.Name));
+        ServerLog(string.Format("Sending game log message '{0}' to {1}", message, player.Name));
         var msg = new MessageTypes.GameLogMessage();
         msg.message = message;
         NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.GAME_LOG, msg);

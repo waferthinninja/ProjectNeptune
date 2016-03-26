@@ -6,23 +6,24 @@ using System;
 public class Deck {
 
     public Faction Faction { get; private set; }
-    private List<Card> _cards;
+    private List<PlayableCard> _cards;
 
     public Deck()
     {
-        _cards = new List<Card>();
+        _cards = new List<PlayableCard>();
 
         // temp hard coded deck
+        Homeworld homeworld = (Homeworld)CardFactory.CreateCard(CardCodename.DEFAULT_HOMEWORLD);
         List<Shipyard> shipyards = new List<Shipyard>();
-        shipyards.Add(new Shipyard(CardCodename.SHIPYARD));
-        shipyards.Add(new Shipyard(CardCodename.SHIPYARD));
-        shipyards.Add(new Shipyard(CardCodename.SMALL_SHIPYARD));
-        Faction = new Faction("DefaultFaction", 5, 10, 5, shipyards);
-        AddCard(CardType.SHIP, CardCodename.FRIGATE, 10);
-        AddCard(CardType.SHIP, CardCodename.CRUISER, 10);
-        AddCard(CardType.SHIP, CardCodename.BATTLESHIP, 10);
-        AddCard(CardType.SHIPYARD, CardCodename.SHIPYARD, 5);
-        AddCard(CardType.SHIPYARD, CardCodename.SMALL_SHIPYARD, 5);
+        shipyards.Add((Shipyard)CardFactory.CreateCard(CardCodename.SHIPYARD));
+        shipyards.Add((Shipyard)CardFactory.CreateCard(CardCodename.SHIPYARD));
+        shipyards.Add((Shipyard)CardFactory.CreateCard(CardCodename.SMALL_SHIPYARD));
+        Faction = new Faction("DefaultFaction", 5, 10, 5, shipyards, homeworld);
+        AddCard(CardCodename.FRIGATE, 10);
+        AddCard(CardCodename.CRUISER, 10);
+        AddCard(CardCodename.BATTLESHIP, 10);
+        AddCard(CardCodename.SHIPYARD, 5);
+        AddCard(CardCodename.SMALL_SHIPYARD, 5);
     }
 
     public int GetCount()
@@ -30,26 +31,15 @@ public class Deck {
         return _cards.Count;
     }
     
-    public void AddCard(CardType subtype, CardCodename CardCodename, int count = 1)
+    public void AddCard(CardCodename CardCodename, int count = 1)
     {
         for (int i = 0; i < count; i++)
         {
-            switch(subtype)
-            {
-                case CardType.SHIP:
-                    _cards.Add(new Ship(CardCodename));
-                    break;
-                case CardType.SHIPYARD:
-                    _cards.Add(new Shipyard(CardCodename));
-                    break;
-                default:
-                    throw new Exception("unknown card subtype");
-            }
-            
+            _cards.Add((PlayableCard)CardFactory.CreateCard(CardCodename));            
         }
     }    
 
-    public Card Draw()
+    public PlayableCard Draw()
     {
         if(_cards.Count < 1)
         {
@@ -57,7 +47,7 @@ public class Deck {
             return null;
         }
 
-        Card c = _cards[0];
+        PlayableCard c = _cards[0];
         _cards.RemoveAt(0);
         return c;
     }

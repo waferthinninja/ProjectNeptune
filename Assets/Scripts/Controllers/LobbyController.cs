@@ -14,10 +14,6 @@ public class LobbyController : NetworkBehaviour {
     public Dictionary<int, Game> _games;               // gameId -> game
     public Dictionary<int, int> _gameConnections;      // connectionId -> gameId
 
-    // TODO - is there a better way to do this - storing names in the GUI as a way to transfer the player names to the client gui "screen"
-    public Transform _playerNameGUI;
-    public Transform _opponentNameGUI;
-
     // TODO - is there a better way to do this? 
     public Transform _gameListPanelContent;
     public Transform _playerListPanelContent;
@@ -170,8 +166,7 @@ public class LobbyController : NetworkBehaviour {
     private void OnPlayerNameMessage(NetworkMessage netMsg)
     {
         var msg = netMsg.ReadMessage <MessageTypes.PlayerNameMessage>();
-        Debug.Log("Received player name " + msg.playerName);
-        _playerNameGUI.GetComponent<Text>().text = msg.playerName;
+        Debug.Log("Received player name " + msg.playerName);        
     }
 
     private void OnGameListMessage(NetworkMessage netMsg)
@@ -476,7 +471,7 @@ public class LobbyController : NetworkBehaviour {
 
     private void OnStartGameMessage(NetworkMessage netMsg)
     {
-        var msg = netMsg.ReadMessage<MessageTypes.StartGameMessage>();
+        var msg = netMsg.ReadMessage<MessageTypes.StartGameMessage>(); // TODO this msg has the opponent name, put into dialog 
 
         // show the game gui and hide the lobby gui 
         EnableDisableGameClientGUI(true);
@@ -487,10 +482,6 @@ public class LobbyController : NetworkBehaviour {
             Camera.main.transform.position.y, 
             0);
         _deckSelectDialog.gameObject.SetActive(true);
-
-        // set opponent name in GUI
-        _opponentNameGUI.GetComponent<Text>().text = msg.opponentName;
-
     }
 
     private void EnableDisableGameClientGUI(bool enable)

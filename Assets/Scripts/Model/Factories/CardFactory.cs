@@ -17,6 +17,8 @@ public static class CardFactory  {
                 return new Ship(cardCodename, cardId);
             case CardType.SHIPYARD:
                 return new Shipyard(cardCodename, cardId);
+            case CardType.HOMEWORLD:
+                return new Homeworld(cardCodename, cardId);
             default:
                 throw new Exception("Invalid card type or card type not found for " + cardCodename);
         }

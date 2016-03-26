@@ -26,7 +26,7 @@ public class MessageTypes
         CLICK_FOR_CREDIT = 2008, // C -> S spend a click to gain a credit
         SHIPYARD = 2009,        // S -> C when the player gets a new shipyard
         HOST_SHIP = 2010,       // S -> C when opponent hosts a card (usually in logistics resolution)
-        SUBMIT_ACTIONS = 2011,   // C -> S to submit actions for the turn
+        SEND_ACTIONS = 2011,   // C <-> S to submit actions for the turn (then server transmits to opponent to update local state)
         GAME_LOG = 2012          // S -> C to send details of game actions to display 
     }
 
@@ -41,7 +41,7 @@ public class MessageTypes
     public class JoinGameMessage : MessageBase      { public int gameNumber; }
     public class StartGameMessage : MessageBase     { public string opponentName; }
     public class PlayerReadyMessage : MessageBase   { }
-    public class SetupGameMessage : MessageBase     { }
+    public class SetupGameMessage : MessageBase     { public string playerName; public string opponentName; }
     public class DrawnCardMessage : MessageBase     { public string CardCodename; public string cardId; public int cardsInDeck; } // possibly not the best place to pass cards in deck?
     public class ShipyardMessage : MessageBase      { public string shipyardType; public string shipyardId; public bool player; } // player = belongs to player, false = belongs to opponent. Might not stay this way
     public class CreditsMessage : MessageBase       { public int credits; }
@@ -51,6 +51,6 @@ public class MessageTypes
     public class ClickForCardMessage : MessageBase  { }
     public class ClickForCreditMessage : MessageBase { }
     public class HostShipMessage : MessageBase      { public string CardCodename; public string cardId; public string shipyardId; }
-    public class SubmitActionsMessage : MessageBase { public string actionData; }
+    public class SendActionsMessage : MessageBase   { public string actionData; }
     public class GameLogMessage : MessageBase       { public string message; }
 }

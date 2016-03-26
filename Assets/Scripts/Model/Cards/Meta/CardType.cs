@@ -1,5 +1,6 @@
 ﻿public enum CardType
 {
     SHIP,
-    SHIPYARD
+    SHIPYARD,
+    HOMEWORLD
 }

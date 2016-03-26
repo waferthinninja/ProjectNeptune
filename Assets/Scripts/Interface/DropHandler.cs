@@ -41,13 +41,13 @@ public class DropHandler : MonoBehaviour, IDropHandler, IPointerEnterHandler, IP
             CardLink cl = eventData.pointerDrag.GetComponent<CardLink>();
             if (cl != null)
             {
-                Card card = cl.card;
+                Card card = cl.Card;
                 Debug.Log(card.CardName + " was dropped on " + gameObject.name);
 
                 if (card.CardType == CardType.SHIP && this.DropZoneType == DropZoneType.PLAYER_SHIPYARD)
                 {
                     // try to host the ship on the shipyard
-                    Shipyard shipyard = (Shipyard)this.GetComponent<CardLink>().card;
+                    Shipyard shipyard = (Shipyard)this.GetComponent<CardLink>().Card;
 
                     GameClientController gameClient = FindObjectOfType<GameClientController>();
                     if (gameClient.TryHost((Ship)card, shipyard))

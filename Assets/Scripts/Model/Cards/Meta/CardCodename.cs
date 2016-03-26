@@ -1,5 +1,6 @@
 ﻿public enum CardCodename
 {
+    DEFAULT_HOMEWORLD,
     FRIGATE,
     CRUISER,
     BATTLESHIP,

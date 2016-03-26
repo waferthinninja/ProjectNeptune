@@ -11,10 +11,10 @@ public class Player {
     public Deck Deck { get; private set; } // this is the current deck used during the game itself 
     public int Credits { get; private set;  }
     public int Clicks { get; private set; }
-    public List<Card> Hand { get; private set; }
-    public List<Card> Discard { get; private set; }
-    public List<Card> Shipyards { get; private set; }
-    public List<Card> Ships { get; private set; }
+    public List<PlayableCard> Hand { get; private set; }
+    public List<PlayableCard> Discard { get; private set; }
+    public List<Shipyard> Shipyards { get; private set; }
+    public List<Ship> Ships { get; private set; }
 
     public Player(string name, int connectionId)
     {
@@ -61,7 +61,7 @@ public class Player {
         Clicks = Deck.Faction.ClicksPerTurn;
 
         // create starting shipyards
-        Shipyards = new List<Card>();
+        Shipyards = new List<Shipyard>();
         for (int i = 0; i < Deck.Faction.Shipyards.Count; i++)
         {
             Shipyard shipyard = Deck.Faction.Shipyards[i];
@@ -69,11 +69,11 @@ public class Player {
         }
 
         // initialize lists
-        Ships = new List<Card>();
+        Ships = new List<Ship>();
 
         // draw starting hand
-        Hand = new List<Card>();
-        Discard = new List<Card>();
+        Hand = new List<PlayableCard>();
+        Discard = new List<PlayableCard>();
         for (int i = 0; i < Deck.Faction.StartingHandSize; i++)
         {
             Hand.Add(Deck.Draw());

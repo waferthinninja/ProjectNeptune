@@ -11,8 +11,8 @@ public class AdvanceConstructionHandler : MonoBehaviour {
         GameClientController gameClient = FindObjectOfType<GameClientController>();
         Transform shipGO = transform.parent.parent; // grandparent should be the card game object - better way to do this? search up 1 level at a time?
         Transform shipyardGO = shipGO.parent;
-        Ship ship = (Ship)shipGO.GetComponent<CardLink>().card;
-        Shipyard shipyard = (Shipyard)shipyardGO.GetComponent<CardLink>().card;
+        Ship ship = (Ship)shipGO.GetComponent<CardLink>().Card;
+        Shipyard shipyard = (Shipyard)shipyardGO.GetComponent<CardLink>().Card;
 
         if (ConstructionComplete)
         {
@@ -20,14 +20,14 @@ public class AdvanceConstructionHandler : MonoBehaviour {
         }
         else
         {
-            TryAdvance(gameClient, ship);
+            TryAdvance(gameClient, ship, shipyard);
         }
     }
 
-    private void TryAdvance(GameClientController gameClient, Ship ship)
+    private void TryAdvance(GameClientController gameClient, Ship ship, Shipyard shipyard)
     {
-        Debug.Log("Trying to advance construction of " + ship.CardName);
-        if (gameClient.TryAdvanceConstruction(ship))
+        Debug.Log(string.Format("Trying to advance construction of {0}({1}) on {2}({3})", ship.CardName, ship.CardId, shipyard.CardName, shipyard.CardId));
+        if (gameClient.TryAdvanceConstruction(ship, shipyard))
         {
             Debug.Log("Advance successful, trying to update GUI");
             // successfully advanced - decrement the amount
@@ -47,7 +47,7 @@ public class AdvanceConstructionHandler : MonoBehaviour {
 
     private void TryDeploy(GameClientController gameClient, Ship ship, Transform shipTransform, Shipyard shipyard)
     {
-        Debug.Log("Trying to deploy " + ship.CardName);
+        Debug.Log(string.Format("Trying to deploy {0}({1}) from {2}({3})", ship.CardName, ship.CardId, shipyard.CardName, shipyard.CardId));
         if (gameClient.TryDeploy(ship, shipyard))
         {
             Debug.Log("Deploy successful");
@@ -57,7 +57,7 @@ public class AdvanceConstructionHandler : MonoBehaviour {
             shipTransform.SetParent(playerShipArea);
 
             // remove this construction panel 
-            Destroy(gameObject);
+            Destroy(transform.parent.gameObject);
         }
     }
 }

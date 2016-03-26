@@ -3,22 +3,26 @@ using System.Collections;
 using System;
 
 [Serializable()]
-public class Shipyard : Card {
+public class Shipyard : PlayableCard, IDamageable {
  
     public int MaxSize { get; private set; }
     public int Efficiency { get; private set; } // number of construction tokens removed per turn
 
-
     public Ship HostedShip { get; private set; }
 
-    public Shipyard(CardCodename type) : base (type, Guid.NewGuid().ToString())
+    public int MaxHealth { get; private set; }
+    public int CurrentHealth { get; private set; }
+
+    public Shipyard(CardCodename codename) : this (codename, Guid.NewGuid().ToString())
     { }
 
-    public Shipyard(CardCodename type, string cardId) : base (type, cardId)
+    public Shipyard(CardCodename codename, string cardId) : base (codename, cardId)
     {
+        CardType = CardType.SHIPYARD;
         MaxSize = GetMaxSize();
-        Efficiency = GetEfficiency();
-        CardType = CardType.SHIPYARD;  
+        Efficiency = GetEfficiency();        
+        MaxHealth = DetermineMaxHealth();
+        CurrentHealth = MaxHealth;
     }    
 
     private int GetEfficiency()
@@ -55,6 +59,20 @@ public class Shipyard : Card {
         HostedShip = null;
     }
 
-   
+    public void DealDamage(int damage)
+    {
+        throw new NotImplementedException();
+    }
 
+    private int DetermineMaxHealth()
+    {
+        if (CardData.MaxHealths.ContainsKey(CardCodename))
+        {
+            return CardData.MaxHealths[CardCodename];
+        }
+        else
+        {
+            throw new Exception(string.Format("Failed to get health for {0}", CardCodename));
+        }
+    }
 }
