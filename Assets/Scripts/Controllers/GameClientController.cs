@@ -125,6 +125,7 @@ public class GameClientController : NetworkBehaviour {
 
     private void ProcessAction(string action)
     {
+        Debug.Log(string.Format("Processing action {0}", action));
         string[] actionData = action.Split('|');
         ActionType actionType = (ActionType)Enum.Parse(typeof(ActionType), actionData[0]);
         switch (actionType)
@@ -166,9 +167,10 @@ public class GameClientController : NetworkBehaviour {
         // dont need this at the moment, might do in the future (e.g if a shipyard gives better advancement or something)
         //Transform shipyardTransform = FindCardTransformById(shipyardId);
         //Shipyard shipyard = (Shipyard)shipyardTransform.GetComponent<CardLink>().Card;
-
+        
         // update gui panel
-        Text constructionRemaining = (Text)shipTransform.FindChild("ConstructionRemaining").GetComponent(typeof(Text));
+        Transform constructionRemainingT = shipTransform.Find("ConstructionPanel/ConstructionRemaining");
+        Text constructionRemaining = (Text)constructionRemainingT.GetComponent(typeof(Text));
         constructionRemaining.text = ship.ConstructionRemaining.ToString();
 
         _opponentClicks -= 1;
@@ -181,6 +183,9 @@ public class GameClientController : NetworkBehaviour {
         Transform shipTransform = FindCardTransformById(shipId);
         Ship ship = (Ship)shipTransform.GetComponent<CardLink>().Card;
         shipTransform.SetParent(_opponentShipAreaGUI);
+
+        // remove the construction panel
+        Destroy(shipTransform.Find("ConstructionPanel").gameObject);
 
         Transform shipyardTransform = FindCardTransformById(shipyardId);
         Shipyard shipyard = (Shipyard)shipyardTransform.GetComponent<CardLink>().Card;
@@ -198,7 +203,7 @@ public class GameClientController : NetworkBehaviour {
         
         // ship will be an unknown card at this point so needs to be instantiated
         Ship ship = (Ship)CardFactory.CreateCard(cardCodename, shipId);
-        Transform shipTransform  = CardPrefabFactory.CreateCardPrefab(ship);
+        Transform shipTransform  = InstantiateCardPrefab(ship);
 
         // the shipyard should already exist, find it
         Transform shipyardTransform = FindCardTransformById(shipyardId);
@@ -212,11 +217,15 @@ public class GameClientController : NetworkBehaviour {
 
         // add "construction remaining" overlay
         var constructionPanelPrefab = Instantiate(_constructionPanelPrefab);
+        constructionPanelPrefab.name = "ConstructionPanel";
         var constructionRemaining = (Text)constructionPanelPrefab.Find("ConstructionRemaining").GetComponent(typeof(Text));
         constructionRemaining.text = ship.ConstructionRemaining.ToString();
+        
+        // remove the "advance" button
         Button button = constructionPanelPrefab.Find("AdvanceConstructionButton").GetComponent<Button>();
         button.transform.localScale = new Vector3();
-        button.interactable = false;// remove the "advance" button
+        button.interactable = false;
+
         constructionPanelPrefab.SetParent(shipTransform);
         constructionPanelPrefab.localPosition = new Vector3(0, 0, 0);
 
@@ -233,6 +242,7 @@ public class GameClientController : NetworkBehaviour {
     {
         _opponentClicks -= 1;
         _opponentCredits += 1;
+        AddGameLogMessage(string.Format("<b>{0}</b> clicks for a credit", _opponentName));
     }
 
     private void ProcessClickForCardAction()
@@ -240,6 +250,7 @@ public class GameClientController : NetworkBehaviour {
         _opponentClicks -= 1;
         _opponentCardsInHand += 1;
         _opponentCardsInDeck -= 1;
+        AddGameLogMessage(string.Format("<b>{0}</b> clicks for a card", _opponentName));
     }
 
     private void OnGameLogMessage(NetworkMessage netMsg)
@@ -279,7 +290,7 @@ public class GameClientController : NetworkBehaviour {
 
         // attach the ship to the shipyard
         cardPrefab.SetParent(shipyard);
-        cardPrefab.localPosition = new Vector3(15, -15, 0);
+        cardPrefab.localPosition = new Vector3(15, 15, 0);
         
         // set the construction remaining
         shipCard.StartConstruction();
@@ -345,7 +356,8 @@ public class GameClientController : NetworkBehaviour {
         var constructionHandlers = FindObjectsOfType<AdvanceConstructionHandler>();
         foreach(AdvanceConstructionHandler handler in constructionHandlers)
         {
-            (handler.GetComponent<Button>()).interactable = planningClicksRemain;
+            (handler.GetComponent<Button>()).interactable = planningClicksRemain || 
+                (_gameState == GameState.LOGISTICS_PLANNING && handler.IsComplete());
         }        
     }
 
@@ -430,8 +442,7 @@ public class GameClientController : NetworkBehaviour {
         shipYardList.Add(shipyard);
 
         // instantiate a prefab 
-        var shipyardPrefab = CardPrefabFactory.CreateCardPrefab(shipyard);
-
+        var shipyardPrefab = InstantiateCardPrefab(shipyard);
 
         // link the shipyard prefab to the underlying object
         var link = shipyardPrefab.GetComponent<CardLink>();
@@ -443,9 +454,6 @@ public class GameClientController : NetworkBehaviour {
 
         Transform constructionArea = (belongsToPlayer ? _playerConstructionAreaGUI : _opponentConstructionAreaGUI);
         shipyardPrefab.SetParent(constructionArea);
-        
-        // store in dictionary
-        _transformById[shipyard.CardId] = shipyardPrefab.transform;
     }
 
     private void OnOpponentStateMessage(NetworkMessage netMsg)
@@ -563,6 +571,7 @@ public class GameClientController : NetworkBehaviour {
         // if we get here, all good
         shipyard.ClearHostedCard();
         _playerShips.Add(ship);
+        _actions.Add(new DeployAction(ship, shipyard));
 
         return true;
     }
@@ -594,6 +603,7 @@ public class GameClientController : NetworkBehaviour {
         HostCard(shipCard, shipyard);
 
         UpdatePlayerStateGUI();
+        EnableDisableControls();
         
         return true;
     }
@@ -619,13 +629,11 @@ public class GameClientController : NetworkBehaviour {
         constructionRemaining.text = shipCard.ConstructionRemaining.ToString();
         constructionPanelPrefab.SetParent(cardTransform);
         constructionPanelPrefab.localPosition = new Vector3(0, 0, 0);
-
     }
 
     public void SubmitActions()
     {
         // TODO - warn player if they have clicks remaining
-
         MessageTypes.SendActionsMessage msg = new MessageTypes.SendActionsMessage();
 
         // serialize actions
@@ -637,6 +645,9 @@ public class GameClientController : NetworkBehaviour {
         msg.actionData = data.ToString().TrimEnd('#');
 
         NetworkManager.singleton.client.Send((short)MessageTypes.MessageType.SEND_ACTIONS, msg);
+
+        _gameState = GameState.LOGISTICS_RESOLUTION;
+        EnableDisableControls();
     }
 }
             

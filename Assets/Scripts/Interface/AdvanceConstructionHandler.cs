@@ -4,7 +4,12 @@ using UnityEngine.UI;
 
 public class AdvanceConstructionHandler : MonoBehaviour {
 
-    private bool ConstructionComplete;
+    private bool _constructionComplete;
+
+    public bool IsComplete()
+    {
+        return _constructionComplete;
+    }
 
     public void AdvanceConstruction()
     {
@@ -14,7 +19,7 @@ public class AdvanceConstructionHandler : MonoBehaviour {
         Ship ship = (Ship)shipGO.GetComponent<CardLink>().Card;
         Shipyard shipyard = (Shipyard)shipyardGO.GetComponent<CardLink>().Card;
 
-        if (ConstructionComplete)
+        if (_constructionComplete)
         {
             TryDeploy(gameClient, ship, shipGO, shipyard);
         }
@@ -36,7 +41,7 @@ public class AdvanceConstructionHandler : MonoBehaviour {
 
             if (ship.ConstructionRemaining == 0)
             {
-                ConstructionComplete = true;
+                _constructionComplete = true;
 
                 // change button text 
                 Text button = (Text)transform.FindChild("AdvanceConstructionButtonText").GetComponent(typeof(Text));

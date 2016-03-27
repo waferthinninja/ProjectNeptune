@@ -394,6 +394,7 @@ public class GameServerController : NetworkBehaviour {
             shipyardMsg.shipyardType = player.Shipyards[i].CardCodename.ToString();
             shipyardMsg.shipyardId = player.Shipyards[i].CardId;
             shipyardMsg.player = true;
+            ServerLog(String.Format("Sending shipyard (own) {0}({1}) to {2}", shipyardMsg.shipyardType, shipyardMsg.shipyardId, player.Name), game);
             NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.SHIPYARD, shipyardMsg);
         }
 
@@ -402,8 +403,8 @@ public class GameServerController : NetworkBehaviour {
             var cardMsg = new MessageTypes.DrawnCardMessage();            
             cardMsg.CardCodename = player.Hand[i].CardCodename.ToString();
             cardMsg.cardId = player.Hand[i].CardId;
-            ServerLog(String.Format("Sending card {0}({1}) to {2}", cardMsg.CardCodename, cardMsg.cardId, player.Name), game);
             cardMsg.cardsInDeck = player.Deck.GetCount();
+            ServerLog(String.Format("Sending card {0}({1}) to {2}", cardMsg.CardCodename, cardMsg.cardId, player.Name), game);            
             NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.DRAWN_CARD, cardMsg);
         }
 
@@ -421,6 +422,7 @@ public class GameServerController : NetworkBehaviour {
             shipyardMsg.shipyardType = opponent.Shipyards[i].CardCodename.ToString();
             shipyardMsg.shipyardId = opponent.Shipyards[i].CardId;
             shipyardMsg.player = false;
+            ServerLog(String.Format("Sending shipyard (opponent) {0}({1}) to {2}", shipyardMsg.shipyardType, shipyardMsg.shipyardId, player.Name), game);
             NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.SHIPYARD, shipyardMsg);
         }
 
