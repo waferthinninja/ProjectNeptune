@@ -15,8 +15,6 @@ public class CardPreviewHandler : MonoBehaviour, IPointerEnterHandler, IPointerE
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        //Debug.Log("CardPreviewHandler OnPointerEnter");
-
         // clear the preview panel
         foreach (Transform child in CardPreviewPanel)
         {
@@ -25,14 +23,13 @@ public class CardPreviewHandler : MonoBehaviour, IPointerEnterHandler, IPointerE
 
         // add a scaled version of the card to the preview panel
         Transform clone = CardPrefabFactory.CreateCardPrefab(CardFactory.CreateCard(GetComponent<CardLink>().Card.CardCodename));
-        clone.localScale = new Vector3(2,2); // TODO - remove hard coding, work it out from sizes?
+        clone.localScale = new Vector3(2, 2); // TODO - remove hard coding, work it out from sizes?
         clone.SetParent(CardPreviewPanel);
-        clone.localPosition = new Vector3(0,0,0);
+        clone.localPosition = new Vector3(0, 0, 0);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        //Debug.Log("CardPreviewHandler OnPointerExit");
         // clear the preview panel
         foreach (Transform child in CardPreviewPanel)
         {

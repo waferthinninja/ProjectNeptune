@@ -19,11 +19,11 @@ public class Deck {
         shipyards.Add((Shipyard)CardFactory.CreateCard(CardCodename.SHIPYARD));
         shipyards.Add((Shipyard)CardFactory.CreateCard(CardCodename.SMALL_SHIPYARD));
         Faction = new Faction("DefaultFaction", 5, 10, 5, shipyards, homeworld);
-        AddCard(CardCodename.FRIGATE, 10);
-        AddCard(CardCodename.CRUISER, 10);
-        AddCard(CardCodename.BATTLESHIP, 10);
-        AddCard(CardCodename.SHIPYARD, 5);
-        AddCard(CardCodename.SMALL_SHIPYARD, 5);
+        AddCard(CardCodename.FRIGATE, 4);
+        AddCard(CardCodename.CRUISER, 4);
+        AddCard(CardCodename.BATTLESHIP, 4);
+        AddCard(CardCodename.SHIPYARD, 4);
+        AddCard(CardCodename.SMALL_SHIPYARD, 4);
     }
 
     public int GetCount()

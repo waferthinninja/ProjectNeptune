@@ -218,12 +218,14 @@ public class GameClientController : NetworkBehaviour {
     {
         GameViewController.SetPlayerName(_game.Player.Name);
         GameViewController.SetOpponentName(_game.Opponent.Name);
+
         UpdatePlayerStateGUI();
         UpdateOpponentStateGUI();
 
-        // TODO Homeworld
+        GameViewController.AddHomeworld(_game.Player.Deck.Faction.Homeworld, true);
+        GameViewController.AddHomeworld(_game.Opponent.Deck.Faction.Homeworld, false);
 
-        foreach(Shipyard shipyard in _game.Player.Shipyards)
+        foreach (Shipyard shipyard in _game.Player.Shipyards)
         {
             GameViewController.AddShipyard(shipyard, true);
         }
@@ -266,37 +268,7 @@ public class GameClientController : NetworkBehaviour {
     {
         GameViewController.UpdateOpponentStateGUI(_game.Opponent);
     }
-
-    //private void OnShipyardMessage(NetworkMessage netMsg)
-    //{
-    //    var msg = netMsg.ReadMessage<MessageTypes.ShipyardMessage>();        
-    //    var shipyardTypeData = msg.shipyardType;
-    //    string shipyardId = msg.shipyardId;
-    //    bool belongsToPlayer = msg.player;
-    //    Debug.Log(string.Format("Shipyard message. Type {0}({1}) {2}", msg.shipyardType, msg.shipyardId, (belongsToPlayer ? " belonging to player" : " belonging to opponent")));
-
-    //    CardCodename shipyardCodename = (CardCodename)Enum.Parse(typeof(CardCodename), shipyardTypeData);
-    //    Shipyard shipyard = (Shipyard)CardFactory.CreateCard(shipyardCodename, shipyardId);
-
-    //    // add to the appropriate player's list
-    //    List<Shipyard> shipYardList = (belongsToPlayer ? _playerShipyards : _opponentShipyards);
-    //    shipYardList.Add(shipyard);
-
-    //    // instantiate a prefab 
-    //    var shipyardPrefab = InstantiateCardPrefab(shipyard);
-
-    //    // link the shipyard prefab to the underlying object
-    //    var link = shipyardPrefab.GetComponent<CardLink>();
-    //    link.Card = shipyard;
-
-    //    // set the approriate dropzone type
-    //    var dropzone = shipyardPrefab.GetComponent<DropHandler>();
-    //    dropzone.DropZoneType = (belongsToPlayer ? DropZoneType.PLAYER_SHIPYARD : DropZoneType.ENEMY_SHIPYARD);
-
-    //    Transform constructionArea = (belongsToPlayer ? PlayerConstructionAreaGUI : OpponentConstructionAreaGUI);
-    //    shipyardPrefab.SetParent(constructionArea);
-    //}   
-
+    
     public void PlayerReady()
     {
         // this is where we would set the deck to be the one selected in the deck selection dialog
@@ -390,7 +362,7 @@ public class GameClientController : NetworkBehaviour {
         ChangeClicks(-1);
         _game.Player.ChangeCredits(-shipyard.BaseCost);
 
-        GameViewController.AddShipyard(shipyard, true);   
+        GameViewController.MoveToConstructionArea(shipyard, true);   
 
         return true;
     }

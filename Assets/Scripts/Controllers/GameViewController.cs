@@ -10,7 +10,6 @@ public class GameViewController : MonoBehaviour {
 
     public CardPrefabFactory CardPrefabFactory;
 
-
     public Transform ConstructionPanelPrefab;
     public Transform GameLogEntryPrefab;
     public Transform GameLogContent;
@@ -49,6 +48,23 @@ public class GameViewController : MonoBehaviour {
         _cardPlaceholders = new Queue<Transform>();
     }
 
+    public void AddHomeworld(Homeworld homeworld, bool belongsToPlayer)
+    {
+        // instantiate
+        Transform shipyardTransform = InstantiateCardPrefab(homeworld);
+
+        // position 
+        Transform constructionArea = (belongsToPlayer ? PlayerConstructionAreaGUI : OpponentConstructionAreaGUI);
+        shipyardTransform.SetParent(constructionArea);
+    }
+
+    public void MoveToConstructionArea(Card card, bool belongsToPlayer)
+    {
+        Transform transform = _transformById[card.CardId];
+        Transform constructionArea = (belongsToPlayer ? PlayerConstructionAreaGUI : OpponentConstructionAreaGUI);
+        transform.SetParent(constructionArea);
+    }
+
     public void AddShipyard(Shipyard shipyard, bool belongsToPlayer)
     {        
         // instantiate
@@ -61,7 +77,7 @@ public class GameViewController : MonoBehaviour {
 
     public void HostShip(Ship ship, Shipyard shipyard, bool belongsToPlayer)
     {
-        Transform shipTransform = InstantiateCardPrefab(ship);
+        Transform shipTransform = _transformById[ship.CardId];
         Transform shipyardTransform = FindCardTransformById(shipyard.CardId);
         
         // add "construction remaining" overlay
@@ -221,4 +237,6 @@ public class GameViewController : MonoBehaviour {
     {
         return _transformById[cardId];
     }
+
+    
 }

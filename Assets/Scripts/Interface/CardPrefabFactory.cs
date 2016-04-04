@@ -14,12 +14,13 @@ public class CardPrefabFactory : MonoBehaviour {
 
     public Transform CreateCardPrefab(Card card)
     {
+        Debug.Log("Creating prefab of " + card.CardCodename);
         Transform transform;
         switch (card.CardType)
         {
             case CardType.UNKNOWN:
                 transform = CreateUnknownPrefab(card);
-                return transform;                
+                return transform; // dont need anything more for this "fake" card                
             case CardType.SHIP:
                 transform = CreateShipPrefab(card);
                 break;
