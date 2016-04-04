@@ -77,7 +77,16 @@ public class GameViewController : MonoBehaviour {
 
     public void HostShip(Ship ship, Shipyard shipyard, bool belongsToPlayer)
     {
-        Transform shipTransform = _transformById[ship.CardId];
+        Transform shipTransform;
+        if (belongsToPlayer)
+        {
+            shipTransform = _transformById[ship.CardId];
+        }
+        else
+        {
+            // will not exist yet, need to instantiate
+            shipTransform = InstantiateCardPrefab(ship);
+        }
         Transform shipyardTransform = FindCardTransformById(shipyard.CardId);
         
         // add "construction remaining" overlay
