@@ -1,4 +1,4 @@
-﻿public class AdvanceConstructionAction : Action {
+﻿public class AdvanceConstructionAction : PlayerAction {
 
     public Ship Ship { get; private set; }
     public Shipyard Shipyard { get; private set; }

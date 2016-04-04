@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 using System;
+using System.Text;
 
 [Serializable()]
 public class Deck {
@@ -15,7 +16,6 @@ public class Deck {
         // temp hard coded deck
         Homeworld homeworld = (Homeworld)CardFactory.CreateCard(CardCodename.DEFAULT_HOMEWORLD);
         List<Shipyard> shipyards = new List<Shipyard>();
-        shipyards.Add((Shipyard)CardFactory.CreateCard(CardCodename.SHIPYARD));
         shipyards.Add((Shipyard)CardFactory.CreateCard(CardCodename.SHIPYARD));
         shipyards.Add((Shipyard)CardFactory.CreateCard(CardCodename.SMALL_SHIPYARD));
         Faction = new Faction("DefaultFaction", 5, 10, 5, shipyards, homeworld);
@@ -55,5 +55,47 @@ public class Deck {
     public void Shuffle()
     {
         _cards.Shuffle();
+    }
+
+    public Deck(string dataStr)
+    {
+        string[] data = dataStr.Split('#');
+        Faction = new Faction(data[0]);
+
+        _cards = new List<PlayableCard>();
+        string[] cardData = data[1].Split('|');
+        int numCards = int.Parse(cardData[0]);
+
+        for (int i = 0; i < numCards; i++)
+        {
+            PlayableCard card = (PlayableCard)CardFactory.CreateCard((CardCodename)Enum.Parse(typeof(CardCodename), cardData[1 + (i * 2)]), cardData[2 + (i * 2)]);
+            _cards.Add(card);
+        }
+    }
+
+    public override string ToString()
+    {
+        return ToString(false);
+    }
+
+    public string ToString(bool anonymize)
+    {
+        StringBuilder sb = new StringBuilder();
+
+        sb.Append(Faction.ToString());
+        sb.Append("#");
+
+        sb.Append(_cards.Count);
+        sb.Append("|");
+
+        foreach (Card card in _cards)
+        {
+            sb.Append(anonymize ? CardCodename.UNKNOWN : card.CardCodename);
+            sb.Append("|");
+            sb.Append(card.CardId);
+            sb.Append("|");
+        }
+
+        return sb.ToString();
     }
 }

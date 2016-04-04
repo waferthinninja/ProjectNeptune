@@ -1,9 +1,12 @@
 ﻿public enum CardCodename
 {
+    UNKNOWN,
     DEFAULT_HOMEWORLD,
     FRIGATE,
     CRUISER,
     BATTLESHIP,
     SMALL_SHIPYARD,
-    SHIPYARD
+    SHIPYARD,
+    SHORT_TERM_INVESTMENT,
+    EFFICIENCY_DRIVE
 }

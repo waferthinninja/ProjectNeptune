@@ -1,4 +1,4 @@
-﻿public class HostShipAction : Action {
+﻿public class HostShipAction : PlayerAction {
 
     public Ship Ship { get; private set; }
     public Shipyard Shipyard { get; private set; }

@@ -21,7 +21,7 @@ public class AdvanceConstructionHandler : MonoBehaviour {
 
         if (_constructionComplete)
         {
-            TryDeploy(gameClient, ship, shipGO, shipyard);
+            TryDeploy(gameClient, ship, shipyard);
         }
         else
         {
@@ -50,16 +50,12 @@ public class AdvanceConstructionHandler : MonoBehaviour {
         }
     }
 
-    private void TryDeploy(GameClientController gameClient, Ship ship, Transform shipTransform, Shipyard shipyard)
+    private void TryDeploy(GameClientController gameClient, Ship ship, Shipyard shipyard)
     {
         Debug.Log(string.Format("Trying to deploy {0}({1}) from {2}({3})", ship.CardName, ship.CardId, shipyard.CardName, shipyard.CardId));
-        if (gameClient.TryDeploy(ship, shipyard))
+        if (gameClient.TryDeployShip(ship, shipyard))
         {
-            Debug.Log("Deploy successful");
-
-            // move to player ship area
-            var playerShipArea = GameObject.Find("PlayerShipArea").transform;
-            shipTransform.SetParent(playerShipArea);
+            Debug.Log("Deploy successful");            
 
             // remove this construction panel 
             Destroy(transform.parent.gameObject);

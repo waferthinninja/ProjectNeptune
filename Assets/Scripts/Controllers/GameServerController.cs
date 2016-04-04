@@ -14,9 +14,36 @@ public class GameServerController : NetworkBehaviour {
     {
         Debug.Log("GameServerController OnStartServer");
         base.OnStartServer(); //base is empty
-        
+        NetworkServer.RegisterHandler((short)MessageTypes.MessageType.DECK_FRAGMENT, OnDeckFragmentMessage);
+        NetworkServer.RegisterHandler((short)MessageTypes.MessageType.DECK_FIRST, OnDeckFirstMessage);
         NetworkServer.RegisterHandler((short)MessageTypes.MessageType.PLAYER_READY, OnPlayerReadyMessage);
         NetworkServer.RegisterHandler((short)MessageTypes.MessageType.SEND_ACTIONS, OnSendActionsMessage);
+    }
+
+    private void OnDeckFirstMessage(NetworkMessage netMsg)
+    {
+        // determine player and game from connection
+        int connectionId = netMsg.conn.connectionId;
+        Player player = GetPlayerFromConnection(connectionId);
+
+        // read the message
+        var msg = netMsg.ReadMessage<MessageTypes.DeckFirstMessage>();
+
+        // store the data
+        player.DeckData = msg.deckDataFragment;
+    }
+
+    private void OnDeckFragmentMessage(NetworkMessage netMsg)
+    {
+        // determine player and game from connection
+        int connectionId = netMsg.conn.connectionId;
+        Player player = GetPlayerFromConnection(connectionId);
+
+        // read the message
+        var msg = netMsg.ReadMessage<MessageTypes.DeckFragmentMessage>();
+
+        // append the data
+        player.DeckData += msg.deckDataFragment;
     }
 
     private void ServerMessage(string message)
@@ -60,16 +87,16 @@ public class GameServerController : NetworkBehaviour {
         var msg = netMsg.ReadMessage<MessageTypes.SendActionsMessage>();
         
         // store in the game object
-        if (game.Host == player)
+        if (game.Player == player)
         {
             game.SubmitHostActions(msg.actionData);
-            ServerLog(string.Format("Host {0} has submitted actions", game.Host.Name), game);
+            ServerLog(string.Format("Host {0} has submitted actions", game.Player.Name), game);
         }
 
-        if (game.Challenger == player)
+        if (game.Opponent == player)
         {
             game.SubmitChallengerActions(msg.actionData);
-            ServerLog(string.Format("Challenger {0} has submitted actions", game.Challenger.Name), game);
+            ServerLog(string.Format("Challenger {0} has submitted actions", game.Opponent.Name), game);
         }
         
         if (game.BothActionsSubmitted())
@@ -84,21 +111,16 @@ public class GameServerController : NetworkBehaviour {
             // replaying resolution
             game.StartCombatPlanningPhase();
         }
-        else
-        {
-            // if this is the first player to submit, send them a "wait for opponent message"
-            PutPlayerInWaitMode(player);
-        }
     }    
 
     private void ProcessActions(Game game)
     {
-        ProcessActionsForPlayer(game, game.HostActionData, game.Host, game.Challenger);
-        ProcessActionsForPlayer(game, game.ChallengerActionData, game.Challenger, game.Host);
+        ProcessActionsForPlayer(game, game.HostActionData, game.Player, game.Opponent);
+        ProcessActionsForPlayer(game, game.ChallengerActionData, game.Opponent, game.Player);
 
         // send actions to opponent - should probably have filtered out bad actions by this point
-        SendActionsToPlayer(game.HostActionData, game.Challenger);
-        SendActionsToPlayer(game.ChallengerActionData, game.Host);
+        SendActionsToPlayer(game.HostActionData, game.Opponent);
+        SendActionsToPlayer(game.ChallengerActionData, game.Player);
 
     }
 
@@ -116,35 +138,6 @@ public class GameServerController : NetworkBehaviour {
         {
             ProcessAction(data[i], game, player, opponent);
         }
-    }
-
-    private void PutPlayerInWaitMode(Player player)
-    {
-        var stateMsg = new MessageTypes.GameStateMessage();
-        stateMsg.state = GameState.WAITING_FOR_OPPONENT.ToString();
-        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.GAME_STATE, stateMsg);
-    }
-
-    private void SendGameStateToPlayers(Game game)
-    {
-        SendGameStateToPlayer(game, game.Host, game.Challenger);
-        SendGameStateToPlayer(game, game.Challenger, game.Host);
-    }
-
-    private void SendGameStateToPlayer(Game game, Player player, Player opponent)
-    {
-        // send basic opponent state
-        var opponentMsg = new MessageTypes.OpponentStateMessage();
-        opponentMsg.credits = opponent.Credits;
-        opponentMsg.clicks = opponent.Clicks;
-        opponentMsg.cardsInHand = opponent.Hand.Count;
-        opponentMsg.cardsInDeck = opponent.Deck.GetCount();
-        opponentMsg.cardsInDiscard = opponent.Discard.Count;
-        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.OPPONENT_STATE, opponentMsg);
-
-        var stateMsg = new MessageTypes.GameStateMessage();
-        stateMsg.state = game.GameState.ToString();
-        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.GAME_STATE, stateMsg);
     }
 
     private void ProcessAction(string action, Game game, Player player, Player opponent)
@@ -175,10 +168,30 @@ public class GameServerController : NetworkBehaviour {
                 shipyardId = actionData[2];
                 ProcessAdvanceConstructionAction(player, opponent, game, shipId, shipyardId);
                 break;
+            case ActionType.SHIPYARD:
+                shipyardId = actionData[1];
+                ProcessShipyardAction(player, opponent, game, shipyardId);
+                break;
             default:
                 ServerLogError("Unknown action type [" + actionType + "]", game);
                 break;
         }
+    }
+
+    private void ProcessShipyardAction(Player player, Player opponent, Game game, string shipyardId)
+    {
+        Shipyard shipyard = (Shipyard)FindCardIn(shipyardId, player.Hand);
+
+        // TODO - error if not found
+
+        // TODO - error if not enough credits
+
+        player.Hand.Remove(shipyard);
+        player.Shipyards.Add(shipyard);
+        player.ChangeClicks(-1);
+        player.ChangeCredits(-shipyard.BaseCost);
+
+        ServerLog(string.Format("Playing shipyard {0}({1}) for {2}", shipyard.CardName, shipyard.CardId, player.Name));
     }
 
     private void ProcessAdvanceConstructionAction(Player player, Player opponent, Game game, string shipId, string shipyardId)
@@ -188,7 +201,7 @@ public class GameServerController : NetworkBehaviour {
 
         // TODO - check that the shipId matches hosted card
 
-        ServerLog(string.Format("Advancing construction of {0}({1}) on {2}({3})", ship.CardName, ship.CardId, shipyard.CardName, shipyard.CardId ), game);
+        ServerLog(string.Format("Advancing construction of {0}({1}) on {2}({3}) for {4}", ship.CardName, ship.CardId, shipyard.CardName, shipyard.CardId, player.Name ), game);
         ship.AdvanceConstruction(1);
         ChangeClicks(player, -1);
     }
@@ -205,7 +218,7 @@ public class GameServerController : NetworkBehaviour {
 
         // TODO - error if not complete
 
-        ServerLog(string.Format("Deploying {0}({1}) from {2}({3})", ship.CardName, ship.CardId, shipyard.CardName, shipyard.CardId), game);
+        ServerLog(string.Format("Deploying {0}({1}) from {2}({3}) for {4}", ship.CardName, ship.CardId, shipyard.CardName, shipyard.CardId, player.Name), game);
         shipyard.ClearHostedCard();
         player.Ships.Add(ship);
     }
@@ -313,6 +326,7 @@ public class GameServerController : NetworkBehaviour {
         cardMsg.cardsInDeck = player.Deck.GetCount();
         NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.DRAWN_CARD, cardMsg);
 
+        ServerLog(string.Format("{0} clicks for a card", player.Name), game);
         // send the action to the opponent for their game log
         //SendGameLogToPlayer(game.GetOpponent(player), string.Format("{0} clicks to draw", player.Name));
     }
@@ -338,6 +352,8 @@ public class GameServerController : NetworkBehaviour {
 
         // add the credit
         ChangeCredits(player, 1);
+
+        ServerLog(string.Format("{0} clicks for a credit", player.Name), game);
     }
 
     void OnPlayerReadyMessage(NetworkMessage netMsg)
@@ -347,18 +363,24 @@ public class GameServerController : NetworkBehaviour {
         Player player = GetPlayerFromConnection(connectionId);
         Game game = GetGameFromConnection(connectionId);
 
-        if (game.Host == player)
+        //var msg = netMsg.ReadMessage<MessageTypes.PlayerReadyMessage>();
+        //Debug.Log(player.DeckData);
+        Deck deck = new Deck(player.DeckData);
+
+        if (game.Player == player)
         {
-            game.HostReady();
-            ServerLog(string.Format("Host {0} is ready", game.Host.Name), game);
+            game.Player.SetDeck(deck);
+            game.PlayerReady();
+            ServerLog(string.Format("Player {0} is ready", game.Player.Name), game);
         }
 
-        if (game.Challenger == player)
+        if (game.Opponent == player)
         {
-            game.ChallengerReady();
-            ServerLog(string.Format("Challenger {0} is ready", game.Challenger.Name), game);
+            game.Opponent.SetDeck(deck);
+            game.OpponentReady();
+            ServerLog(string.Format("Opponent {0} is ready", game.Opponent.Name), game);
         }
-        
+
         // if both players now ready, start the game proper
         if (game.BothPlayersReady())
         {
@@ -374,66 +396,40 @@ public class GameServerController : NetworkBehaviour {
     
     private void SendStartingState(Game game)
     {
-        SendStartingStateToPlayer(game, game.Host, game.Challenger);
-        SendStartingStateToPlayer(game, game.Challenger, game.Host);
+        SendStartingStateToPlayer(game, game.Player, game.Opponent);
+        SendStartingStateToPlayer(game, game.Opponent, game.Player);
     }
 
     private void SendStartingStateToPlayer(Game game, Player player, Player opponent)
     {
-        var creditsMsg = new MessageTypes.CreditsMessage();
-        creditsMsg.credits = player.Credits;
-        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.CREDITS, creditsMsg);
+        Debug.Log(string.Format("Sending first deck fragment of {0} to {1}", opponent.Name, player.Name));
+        string deckData = opponent.Deck.ToString(true);
+        MessageTypes.DeckFirstMessage msgFirst = new MessageTypes.DeckFirstMessage();
+        msgFirst.deckDataFragment = deckData.Substring(0, Math.Min(deckData.Length, 1024));
+        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.DECK_FIRST, msgFirst);
 
-        var clicksMsg = new MessageTypes.ClicksMessage();
-        clicksMsg.clicks = player.Clicks;
-        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.CLICKS, clicksMsg);
-
-        for (int i = 0; i < player.Shipyards.Count; i++)
+        for (int i = 1; i * 1024 < deckData.Length; i++)
         {
-            var shipyardMsg = new MessageTypes.ShipyardMessage();
-            shipyardMsg.shipyardType = player.Shipyards[i].CardCodename.ToString();
-            shipyardMsg.shipyardId = player.Shipyards[i].CardId;
-            shipyardMsg.player = true;
-            ServerLog(String.Format("Sending shipyard (own) {0}({1}) to {2}", shipyardMsg.shipyardType, shipyardMsg.shipyardId, player.Name), game);
-            NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.SHIPYARD, shipyardMsg);
+            Debug.Log(string.Format("Sending deck fragment of {0} to {1}", opponent.Name, player.Name));
+            MessageTypes.DeckFragmentMessage msgFrag = new MessageTypes.DeckFragmentMessage();
+            msgFrag.deckDataFragment = deckData.Substring(i * 1024, Math.Min((deckData.Length - i * 1024), 1024));
+            NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.DECK_FRAGMENT, msgFrag);
         }
 
+        var msg = new MessageTypes.SetupGameMessage();       
+        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.SETUP_GAME, msg);    
+        
+        // send starting hand
         for (int i = 0; i < player.Hand.Count; i++)
         {
-            var cardMsg = new MessageTypes.DrawnCardMessage();            
-            cardMsg.CardCodename = player.Hand[i].CardCodename.ToString();
-            cardMsg.cardId = player.Hand[i].CardId;
+            var cardMsg = new MessageTypes.DrawnCardMessage();
+            var card = player.Hand[i];
+            ServerLog(string.Format("{0} card{1}:{2}", player.Name, i, card.CardName), game);
+            cardMsg.CardCodename = card.CardCodename.ToString();
+            cardMsg.cardId = card.CardId;
             cardMsg.cardsInDeck = player.Deck.GetCount();
-            ServerLog(String.Format("Sending card {0}({1}) to {2}", cardMsg.CardCodename, cardMsg.cardId, player.Name), game);            
             NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.DRAWN_CARD, cardMsg);
-        }
-
-        var opponentMsg = new MessageTypes.OpponentStateMessage();
-        opponentMsg.credits = opponent.Credits;
-        opponentMsg.clicks = opponent.Clicks;
-        opponentMsg.cardsInHand = opponent.Hand.Count;
-        opponentMsg.cardsInDeck = opponent.Deck.GetCount();
-        opponentMsg.cardsInDiscard = opponent.Discard.Count;
-        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.OPPONENT_STATE, opponentMsg);
-
-        for (int i = 0; i < opponent.Shipyards.Count; i++)
-        {
-            var shipyardMsg = new MessageTypes.ShipyardMessage();
-            shipyardMsg.shipyardType = opponent.Shipyards[i].CardCodename.ToString();
-            shipyardMsg.shipyardId = opponent.Shipyards[i].CardId;
-            shipyardMsg.player = false;
-            ServerLog(String.Format("Sending shipyard (opponent) {0}({1}) to {2}", shipyardMsg.shipyardType, shipyardMsg.shipyardId, player.Name), game);
-            NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.SHIPYARD, shipyardMsg);
-        }
-
-        var msg = new MessageTypes.SetupGameMessage();
-        msg.playerName = player.Name;
-        msg.opponentName = opponent.Name;
-        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.SETUP_GAME, msg);
-
-        var stateMsg = new MessageTypes.GameStateMessage();
-        stateMsg.state = GameState.LOGISTICS_PLANNING.ToString();
-        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.GAME_STATE, stateMsg);
+        }                
     }
 
     private void SendGameLogToPlayer(Player player, string message)
@@ -459,4 +455,5 @@ public class GameServerController : NetworkBehaviour {
 
         return lc._games[gameNumber];
     }
+    
 }

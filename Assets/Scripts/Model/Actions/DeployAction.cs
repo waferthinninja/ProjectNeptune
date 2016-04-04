@@ -1,5 +1,5 @@
 ﻿
-public class DeployAction : Action {
+public class DeployAction : PlayerAction {
 
     public Ship Ship { get; private set; }
     public Shipyard Shipyard { get; private set; }

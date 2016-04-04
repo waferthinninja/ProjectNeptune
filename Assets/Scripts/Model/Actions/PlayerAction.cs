@@ -1,8 +1,8 @@
-﻿public class Action {
+﻿public class PlayerAction {
 
 	public ActionType Type { get; private set; }
 
-    public Action(ActionType type)
+    public PlayerAction(ActionType type)
     {
         Type = type;
     }
@@ -11,6 +11,4 @@
     {
         return Type.ToString();
     }
-
-
 }

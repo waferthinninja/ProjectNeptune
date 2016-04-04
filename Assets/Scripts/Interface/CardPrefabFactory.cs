@@ -4,8 +4,12 @@ using UnityEngine.UI;
 
 public class CardPrefabFactory : MonoBehaviour {
 
+    public Transform UnknownCardPrefab;
     public Transform ShipPrefab;
     public Transform ShipyardPrefab;
+    public Transform HomeworldPrefab;
+    public Transform OperationPrefab;
+
     public Transform WeaponPrefab;
 
     public Transform CreateCardPrefab(Card card)
@@ -13,11 +17,20 @@ public class CardPrefabFactory : MonoBehaviour {
         Transform transform;
         switch (card.CardType)
         {
+            case CardType.UNKNOWN:
+                transform = CreateUnknownPrefab(card);
+                return transform;                
             case CardType.SHIP:
                 transform = CreateShipPrefab(card);
                 break;
             case CardType.SHIPYARD:
                 transform = CreateShipyardPrefab(card);
+                break;
+            case CardType.HOMEWORLD:
+                transform = CreateHomeworldPrefab(card);
+                break;
+            case CardType.OPERATION:
+                transform = CreateOperationPrefab(card);
                 break;
             default:
                 throw new Exception("Invalid card type");
@@ -35,11 +48,40 @@ public class CardPrefabFactory : MonoBehaviour {
         var name = (Text)transform.Find("Name").GetComponent(typeof(Text));
         name.text = card.CardName;
 
+        var cardText = (Text)transform.Find("CardText").GetComponent(typeof(Text));
+        cardText.text = card.CardText;
+
         if (card is PlayableCard)
         {
             var cardCost = (Text)transform.Find("Cost").GetComponent(typeof(Text));
             cardCost.text = ((PlayableCard)card).BaseCost.ToString();
         }
+
+        return transform;
+    }
+
+    private Transform CreateUnknownPrefab(Card card)
+    {
+        Transform transform = Instantiate(UnknownCardPrefab);
+
+        return transform;
+    }
+
+    private Transform CreateOperationPrefab(Card card)
+    {
+        Transform transform = Instantiate(OperationPrefab);
+
+        return transform;
+    }
+
+    private Transform CreateHomeworldPrefab(Card card)
+    {
+        Transform transform = Instantiate(HomeworldPrefab);
+
+        Homeworld homeworld = (Homeworld)card;
+
+        var health = (Text)transform.Find("Health").GetComponent(typeof(Text));
+        health.text = string.Format("{0}/{1}", homeworld.CurrentHealth, homeworld.MaxHealth);
 
         return transform;
     }
@@ -77,6 +119,9 @@ public class CardPrefabFactory : MonoBehaviour {
         maxSize.text =  shipyard.MaxSize.ToString();
         var efficiency = (Text)transform.Find("Efficiency").GetComponent(typeof(Text));
         efficiency.text = shipyard.Efficiency.ToString();
+        
+        var health = (Text)transform.Find("Health").GetComponent(typeof(Text));
+        health.text = string.Format("{0}/{1}", shipyard.CurrentHealth, shipyard.MaxHealth);
 
         return transform;
     }

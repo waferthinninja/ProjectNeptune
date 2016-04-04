@@ -7,6 +7,8 @@ public class Player {
     //private Deck _deck; // this is the "clean" version of the deck     
     public int ConnectionId { get; protected set; }
 
+    public string DeckData; // hack to allow deck to be sent in chunks
+
     // in game 
     public Deck Deck { get; private set; } // this is the current deck used during the game itself 
     public int Credits { get; private set;  }
@@ -19,14 +21,18 @@ public class Player {
     public Player(string name, int connectionId)
     {
         Name = name;
-        ConnectionId = connectionId;
-        // temp hard coded deck
+        ConnectionId = connectionId;        
         Deck = new Deck();        
     }
 
     public void SetDeck(Deck deck)
     {
         Deck = deck;
+    }
+
+    public void DrawFromDeck()
+    {
+        Hand.Add(Deck.Draw());
     }
 
     public void ChangeClicks(int change)

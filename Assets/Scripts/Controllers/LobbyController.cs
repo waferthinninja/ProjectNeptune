@@ -13,23 +13,22 @@ public class LobbyController : NetworkBehaviour {
     public Dictionary<int, Player> _playerConnections; // connectionId -> player
     public Dictionary<int, Game> _games;               // gameId -> game
     public Dictionary<int, int> _gameConnections;      // connectionId -> gameId
-
-    // TODO - is there a better way to do this? 
-    public Transform _gameListPanelContent;
-    public Transform _playerListPanelContent;
-    public Transform _chatPanelContent;
-    public Transform _chatPanel;
-    public Transform _deckSelectDialog;
-
     private List<Player> _playersInLobby; // NOTE at the moment we remove players from the lobby when they create a game, though they should still get lobby messgages?
-    //private List<string> _chatLog;
-    public NetworkClient _client;
+    private NetworkClient _client;
     private int _gameNumber;
 
-    public Transform chatMessagePrefab;
-    public Transform playerListEntry;
-    public Transform joinableGameListEntry;
-    public Transform unjoinableGameListEntry;
+    public Player LocalPlayer;// for the client to store their own player object
+    public Player Opponent;
+
+    public Transform GameListPanelContent;
+    public Transform PlayerListPanelContent;
+    public Transform ChatPanelContent;
+    public Transform ChatPanel;
+    public Transform DeckSelectDialog;
+    public Transform ChatMessagePrefab;
+    public Transform PlayerListEntry;
+    public Transform JoinableGameListEntry;
+    public Transform UnjoinableGameListEntry;
 
     void Start()
     {
@@ -148,24 +147,27 @@ public class LobbyController : NetworkBehaviour {
         var msg = netMsg.ReadMessage<MessageTypes.ChatMessage>();
         //Debug.Log("New chat message on client: " + msg.message);
         
-        var chatMessage = Instantiate(chatMessagePrefab);
+        var chatMessage = Instantiate(ChatMessagePrefab);
         Text t = (Text)chatMessage.GetComponent(typeof(Text));
         t.text = msg.message;
-        chatMessage.SetParent(_chatPanelContent);
+        chatMessage.SetParent(ChatPanelContent);
 
-        var scrollRect = (ScrollRect)_chatPanel.GetComponent(typeof(ScrollRect));
+        var scrollRect = (ScrollRect)ChatPanel.GetComponent(typeof(ScrollRect));
         scrollRect.verticalNormalizedPosition = 0f;
     }
 
     private void OnGameNumberMessage(NetworkMessage netMsg)
     {
         var msg = netMsg.ReadMessage<MessageTypes.GameNumberMessage>();
-        //Debug.Log("Received game number " + msg.gameNumber);
+        Debug.Log("Received game number " + msg.gameNumber);
         _gameNumber = msg.gameNumber;
     }
     private void OnPlayerNameMessage(NetworkMessage netMsg)
     {
         var msg = netMsg.ReadMessage <MessageTypes.PlayerNameMessage>();
+
+        LocalPlayer = new Player(msg.playerName, 0);
+
         Debug.Log("Received player name " + msg.playerName);        
     }
 
@@ -177,7 +179,7 @@ public class LobbyController : NetworkBehaviour {
 
         // clear the game list gui
         var children = new List<GameObject>();
-        foreach (Transform child in _gameListPanelContent) children.Add(child.gameObject);
+        foreach (Transform child in GameListPanelContent) children.Add(child.gameObject);
         children.ForEach(child => Destroy(child));
         
         // populate the list with the new data
@@ -198,7 +200,7 @@ public class LobbyController : NetworkBehaviour {
 
         // clear the player list gui
         var children = new List<GameObject>();
-        foreach (Transform child in _playerListPanelContent) children.Add(child.gameObject);
+        foreach (Transform child in PlayerListPanelContent) children.Add(child.gameObject);
         children.ForEach(child => Destroy(child));
 
         // populate the list with the new data
@@ -211,14 +213,14 @@ public class LobbyController : NetworkBehaviour {
 
     private void AddPlayerListEntry(string playerName)
     {
-        Transform entry = Instantiate(playerListEntry);
+        Transform entry = Instantiate(PlayerListEntry);
 
         // set the players text
         var textElement = (Text)entry.GetComponentInChildren(typeof(Text));
         textElement.text = playerName;
 
         // set parent to be the player list content panel
-        entry.SetParent(_playerListPanelContent);
+        entry.SetParent(PlayerListPanelContent);
     }
 
     private void AddGameListEntry(int gameNumber, bool joinable, string players)
@@ -227,7 +229,7 @@ public class LobbyController : NetworkBehaviour {
         joinable = joinable && gameNumber != _gameNumber;
 
         // Instantiate the appropriate prefab
-        Transform entry = (joinable ? Instantiate(joinableGameListEntry) : Instantiate(unjoinableGameListEntry));
+        Transform entry = (joinable ? Instantiate(JoinableGameListEntry) : Instantiate(UnjoinableGameListEntry));
         
         // set the players text
         var textElement = (Text)entry.GetComponentInChildren(typeof(Text));
@@ -241,7 +243,7 @@ public class LobbyController : NetworkBehaviour {
         }
 
         // set parent to be the gamelistcontent panel
-        entry.SetParent(_gameListPanelContent);
+        entry.SetParent(GameListPanelContent);
     }
 
     private void JoinGame(int gameNumber)
@@ -364,8 +366,8 @@ public class LobbyController : NetworkBehaviour {
             sb.Append("|");
             sb.Append(_games[key].GameState == GameState.AWAITING_CHALLENGER ? "1" : "0");
             sb.Append("|");
-            sb.Append(_games[key].Host.Name);
-            sb.Append(_games[key].GameState == GameState.AWAITING_CHALLENGER ? "" : " vs " + _games[key].Challenger.Name );
+            sb.Append(_games[key].Player.Name);
+            sb.Append(_games[key].GameState == GameState.AWAITING_CHALLENGER ? "" : " vs " + _games[key].Opponent.Name );
         }
 
         return sb.ToString();
@@ -385,14 +387,14 @@ public class LobbyController : NetworkBehaviour {
         {            
             if (_games[key].GameState == GameState.AWAITING_CHALLENGER)
             {
-                sb.Append(_games[key].Host.Name + " (Waiting)");
+                sb.Append(_games[key].Player.Name + " (Waiting)");
                 sb.Append("|");
             }
             else
             {
-                sb.Append(_games[key].Host.Name + " (Playing)");
+                sb.Append(_games[key].Player.Name + " (Playing)");
                 sb.Append("|");
-                sb.Append(_games[key].Challenger.Name + " (Playing)");
+                sb.Append(_games[key].Opponent.Name + " (Playing)");
                 sb.Append("|");
             }
         }
@@ -408,7 +410,7 @@ public class LobbyController : NetworkBehaviour {
 
         int gameNumber = netMsg.ReadMessage<MessageTypes.CancelGameMessage>().gameNumber;
         // check player created the game
-        if(_games[gameNumber].Host == player)
+        if(_games[gameNumber].Player == player)
         {
             // Remove the game
             _games.Remove(gameNumber);  
@@ -440,7 +442,7 @@ public class LobbyController : NetworkBehaviour {
         if (_playersInLobby.Contains(player)) // TODO - check isn't already in another game? Unnecessary?
         {
             // add player to the game 
-            game.AddChallenger(player);
+            game.AddOpponent(player);
             _gameConnections[connectionId] = gameNumber;
 
             // send the game number to the client
@@ -450,10 +452,10 @@ public class LobbyController : NetworkBehaviour {
 
             // transition players to the game scene
             var msg2 = new MessageTypes.StartGameMessage();
-            msg2.opponentName = game.Challenger.Name;
-            NetworkServer.SendToClient(game.Host.ConnectionId, (short)MessageTypes.MessageType.START_GAME, msg2);
-            msg2.opponentName = game.Host.Name;
-            NetworkServer.SendToClient(game.Challenger.ConnectionId, (short)MessageTypes.MessageType.START_GAME, msg2);
+            msg2.opponentName = game.Opponent.Name;
+            NetworkServer.SendToClient(game.Player.ConnectionId, (short)MessageTypes.MessageType.START_GAME, msg2);
+            msg2.opponentName = game.Player.Name;
+            NetworkServer.SendToClient(game.Opponent.ConnectionId, (short)MessageTypes.MessageType.START_GAME, msg2);
 
             // remove player from lobby
             _playersInLobby.Remove(player);
@@ -471,17 +473,18 @@ public class LobbyController : NetworkBehaviour {
 
     private void OnStartGameMessage(NetworkMessage netMsg)
     {
-        var msg = netMsg.ReadMessage<MessageTypes.StartGameMessage>(); // TODO this msg has the opponent name, put into dialog 
-
+        var msg = netMsg.ReadMessage<MessageTypes.StartGameMessage>();
+        Opponent = new Player(msg.opponentName, 0);
+        
         // show the game gui and hide the lobby gui 
         EnableDisableGameClientGUI(true);
 
         // also show the deck select dialog
-        _deckSelectDialog.position = new Vector3(
+        DeckSelectDialog.position = new Vector3(
             Camera.main.transform.position.x,
             Camera.main.transform.position.y, 
             0);
-        _deckSelectDialog.gameObject.SetActive(true);
+        DeckSelectDialog.gameObject.SetActive(true);
     }
 
     private void EnableDisableGameClientGUI(bool enable)

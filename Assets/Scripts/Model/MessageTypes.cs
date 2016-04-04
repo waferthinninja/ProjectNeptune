@@ -15,19 +15,13 @@ public class MessageTypes
         START_GAME = 1007,      // C <- S tell the client to load the gameclient scene
         PLAYER_LIST = 1008,     // C <- S update the list of players
         PLAYER_NAME = 1009,     // C <- S inform them of their name (might have been made unique by adding a number)
-        PLAYER_READY = 2000,    // C -> S say they are ready to start the game
-        SETUP_GAME = 2001,      // S -> C both players are ready 
+        PLAYER_READY = 2000,    // C -> S say they are ready to start the game - and send the deck they will be playing with
+        SETUP_GAME = 2001,      // S -> C both players are ready  - and send the opponents "public" deck details
         DRAWN_CARD = 2002,      // S -> C when a player draws a card from their deck
-        CREDITS = 2003,         // C <- S update their current credits
-        CLICKS = 2004,          // C <- S update their current clicks (i.e action points/logistics points)
-        OPPONENT_STATE = 2005,  // C <- S update the basic state of their opponent (credits, clicks, cards in hand) 
-        GAME_STATE = 2006,      // C <- S update the game state (i.e. phase)
-        CLICK_FOR_CARD = 2007,  // C -> S spend a click to draw a card  
-        CLICK_FOR_CREDIT = 2008, // C -> S spend a click to gain a credit
-        SHIPYARD = 2009,        // S -> C when the player gets a new shipyard
-        HOST_SHIP = 2010,       // S -> C when opponent hosts a card (usually in logistics resolution)
-        SEND_ACTIONS = 2011,   // C <-> S to submit actions for the turn (then server transmits to opponent to update local state)
-        GAME_LOG = 2012          // S -> C to send details of game actions to display 
+        SEND_ACTIONS = 2003,    // C <-> S to submit actions for the turn (then server transmits to opponent to update local state)
+        GAME_LOG = 2004,        // S -> C to send details of game actions to display 
+        DECK_FIRST = 2005,      // C <-> S probably a clumsy way to handle this, but deck too large to send in one go so we send these chunks
+        DECK_FRAGMENT = 2006    //          first one tells to start storing it, the rest are appended, then some other message will use the full data
     }
 
     public class ChatMessage : MessageBase          { public string message; }
@@ -40,17 +34,11 @@ public class MessageTypes
     public class PlayerNameMessage : MessageBase    { public string playerName; }
     public class JoinGameMessage : MessageBase      { public int gameNumber; }
     public class StartGameMessage : MessageBase     { public string opponentName; }
-    public class PlayerReadyMessage : MessageBase   { }
-    public class SetupGameMessage : MessageBase     { public string playerName; public string opponentName; }
+    public class PlayerReadyMessage : MessageBase   {  }
+    public class SetupGameMessage : MessageBase     {  }
     public class DrawnCardMessage : MessageBase     { public string CardCodename; public string cardId; public int cardsInDeck; } // possibly not the best place to pass cards in deck?
-    public class ShipyardMessage : MessageBase      { public string shipyardType; public string shipyardId; public bool player; } // player = belongs to player, false = belongs to opponent. Might not stay this way
-    public class CreditsMessage : MessageBase       { public int credits; }
-    public class ClicksMessage : MessageBase        { public int clicks; }
-    public class OpponentStateMessage : MessageBase { public int credits; public int clicks; public int cardsInHand; public int cardsInDeck; public int cardsInDiscard; }
-    public class GameStateMessage : MessageBase     { public string state; }
-    public class ClickForCardMessage : MessageBase  { }
-    public class ClickForCreditMessage : MessageBase { }
-    public class HostShipMessage : MessageBase      { public string CardCodename; public string cardId; public string shipyardId; }
     public class SendActionsMessage : MessageBase   { public string actionData; }
     public class GameLogMessage : MessageBase       { public string message; }
+    public class DeckFirstMessage : MessageBase     { public string deckDataFragment; }
+    public class DeckFragmentMessage : MessageBase  { public string deckDataFragment; }
 }

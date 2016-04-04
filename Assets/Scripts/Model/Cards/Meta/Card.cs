@@ -10,6 +10,7 @@ public abstract class Card {
 
     public CardType CardType { get; protected set; } // not sure if we really need this
     public string ImageName { get; protected set; }
+    public string CardText { get; protected set; }
 
     public Card(CardCodename cardCodename, string cardId)
     {        
@@ -17,6 +18,20 @@ public abstract class Card {
         CardCodename = cardCodename;
         CardName = DetermineCardName();
         ImageName = DetermineImageName();
+        CardText = DetermineCardText();
+    }
+
+    private string DetermineCardText()
+    {
+        if (CardData.CardTexts.ContainsKey(CardCodename))
+        {
+            return CardData.CardTexts[CardCodename];
+        }
+        else
+        {
+            return "";
+            //throw new Exception(string.Format("Failed to get card text for {0}", CardCodename));
+        }
     }
 
     private string DetermineImageName()

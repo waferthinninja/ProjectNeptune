@@ -1,6 +1,8 @@
 ﻿public enum CardType
 {
+    UNKNOWN,
     SHIP,
     SHIPYARD,
-    HOMEWORLD
+    HOMEWORLD,
+    OPERATION
 }

@@ -6,8 +6,8 @@ public class Game  {
     // NOTE - only the server sees this comprehansive version of the game state - the players view of the game is held in GameClientController
 
     public int GameNumber { get; private set; }
-    public Player Host { get; private set; } // player who created the game - they aren't really "hosting" in a network sense, just a way to distinguish the players
-    public Player Challenger { get; private set; }
+    public Player Player { get; private set; } 
+    public Player Opponent { get; private set; }
     public GameState GameState { get; private set; }
     public int GameTurn { get; private set; }
     public string HostActionData { get; private set; }
@@ -16,31 +16,31 @@ public class Game  {
     private bool _hostReady;
     private bool _challengerReady;
     
-    public Game(int gameNumber, Player host)
+    public Game(int gameNumber, Player player)
     {
         GameNumber = gameNumber;
-        Host = host;
+        Player = player;
         GameState = GameState.AWAITING_CHALLENGER;
     }
 
-    public bool AddChallenger(Player challenger)
+    public bool AddOpponent(Player opponent)
     {
-        if (Challenger != null || GameState != GameState.AWAITING_CHALLENGER)
+        if (Opponent != null || GameState != GameState.AWAITING_CHALLENGER)
         {
             return false;
         }
-        Challenger = challenger;
+        Opponent = opponent;
         GameState = GameState.SETUP;
 
         return true;
     }
 
-    public void HostReady()
+    public void PlayerReady()
     {
         _hostReady = true;
     }
 
-    public void ChallengerReady()
+    public void OpponentReady()
     {
         _challengerReady = true;
     }
@@ -53,8 +53,8 @@ public class Game  {
     public void Setup()
     {
         // setup the deck of each player
-        Host.Setup();
-        Challenger.Setup();
+        Player.Setup();
+        Opponent.Setup();
 
         // start the first turn
         StartNewTurn();
@@ -64,6 +64,11 @@ public class Game  {
     {
         GameTurn++;
         StartLogisticsPlanningPhase();
+    }
+
+    public void AwaitOpponent()
+    {
+        GameState = GameState.WAITING_FOR_OPPONENT;
     }
 
     public void StartLogisticsPlanningPhase()
@@ -102,17 +107,19 @@ public class Game  {
 
     public Player GetOpponent(Player player)
     {
-        if (player == Host)
+        if (player == Player)
         {
-            return Challenger;
+            return Opponent;
         }
-        else if (player == Challenger)
+        else if (player == Opponent)
         {
-            return Host;
+            return Player;
         }
         else
         {
             throw new System.Exception("Invalid player for this game");
         }
     }
+
+    
 }
