@@ -58,11 +58,27 @@ public class GameViewController : MonoBehaviour {
         shipyardTransform.SetParent(constructionArea);
     }
 
+    public void DestroyCardTransform(Card card)
+    {
+        Transform transform = _transformById[card.CardId];
+        Destroy(transform.gameObject);
+    }
+
     public void MoveToConstructionArea(Card card, bool belongsToPlayer)
     {
         Transform transform = _transformById[card.CardId];
         Transform constructionArea = (belongsToPlayer ? PlayerConstructionAreaGUI : OpponentConstructionAreaGUI);
         transform.SetParent(constructionArea);
+    }
+
+    public void AddOperation(Operation operation, bool belongsToPlayer)
+    {
+        // instantiate
+        Transform operationTransform = InstantiateCardPrefab(operation);
+
+        // position 
+        Transform constructionArea = (belongsToPlayer ? PlayerConstructionAreaGUI : OpponentConstructionAreaGUI);
+        operationTransform.SetParent(constructionArea);
     }
 
     public void AddShipyard(Shipyard shipyard, bool belongsToPlayer)
@@ -80,6 +96,7 @@ public class GameViewController : MonoBehaviour {
         Transform shipTransform;
         if (belongsToPlayer)
         {
+            // will already be in hand, just find it
             shipTransform = _transformById[ship.CardId];
         }
         else

@@ -106,10 +106,42 @@ public class GameClientController : NetworkBehaviour {
                 cardCodename = (CardCodename)Enum.Parse(typeof(CardCodename), actionData[2]);
                 ProcessOpponentShipyardAction(shipyardId, cardCodename);
                 break;
+            case ActionType.OPERATION:
+                string operationId = actionData[1];
+                cardCodename = (CardCodename)Enum.Parse(typeof(CardCodename), actionData[2]);
+                ProcessOpponentOperationAction(operationId, cardCodename);
+                break;
             default:
                 Debug.LogError("Unknown action type [" + actionType + "]");
                 break;
         }
+    }
+
+    private void ProcessOpponentOperationAction(string operationId, CardCodename cardCodename)
+    {
+        // instantiate
+        Operation operation = (Operation)CardFactory.CreateCard(cardCodename, operationId);
+
+        _game.Opponent.ChangeClicks(-1);
+        _game.Opponent.ChangeCredits(-operation.BaseCost);
+        _game.Opponent.Hand.RemoveAt(0);
+        if (operation.OnPlay != null)
+        {
+            operation.OnPlay(_game, _game.Opponent);
+        }
+
+        if (operation.OperationType == OperationType.ONESHOT)
+        {
+            _game.Opponent.Discard.Add(operation);
+        }
+        else
+        {
+            _game.Opponent.OngoingOperations.Add(operation);
+            GameViewController.AddOperation(operation, false);
+        }
+
+        // log 
+        GameViewController.AddGameLogMessage(string.Format("<b>{0}</b> plays {1}", _game.Opponent.Name, operation.CardName));
     }
 
     private void ProcessOpponentShipyardAction(string shipyardId, CardCodename cardCodename)
@@ -161,8 +193,10 @@ public class GameClientController : NetworkBehaviour {
         Shipyard shipyard = _game.Opponent.Shipyards.Find(x => x.CardId == shipyardId);
         shipyard.HostCard(ship);
         ship.StartConstruction();
-        ship.OnPlay(_game, _game.Opponent);
-
+        if (ship.OnPlay != null)
+        {
+            ship.OnPlay(_game, _game.Opponent);
+        }
         _game.Opponent.ChangeClicks(-1);
         _game.Opponent.ChangeCredits(-ship.BaseCost);
         _game.Opponent.Hand.RemoveAt(0);        
@@ -203,15 +237,19 @@ public class GameClientController : NetworkBehaviour {
         Debug.Log("Game starting");
         //var msg = netMsg.ReadMessage<MessageTypes.SetupGameMessage>();
         Deck deck = new Deck(LobbyController.Opponent.DeckData);
+        
         LobbyController.Opponent.SetDeck(deck);
         _game = new Game(0, LobbyController.LocalPlayer);
         _game.AddOpponent(LobbyController.Opponent);
         _game.Setup();
 
+        _game.Player.DrawStartingHand();
+        _game.Opponent.DrawStartingHand();
         SetupInitialGameView();
-
+        
         GameViewController.HideDeckSelectDialog();
         WriteGameTurnToLog();
+        GameViewController.EnableDisableControls(_game.GameState, true);
     }
 
     private void SetupInitialGameView()
@@ -234,6 +272,8 @@ public class GameClientController : NetworkBehaviour {
         {
             GameViewController.AddShipyard(shipyard, false);
         }
+
+        GameViewController.UpdateGameState(_game.GameState);
     }
 
     private void WriteGameTurnToLog()
@@ -316,16 +356,17 @@ public class GameClientController : NetworkBehaviour {
     {
         Debug.Log("Clicking for card");
         _actions.Add(new PlayerAction(ActionType.CLICK_FOR_CARD));
-        ChangeClicks(-1);
-
+        _game.Player.Deck.Draw();
+        ChangeClicks(-1);        
+        GameViewController.AddGameLogMessage(string.Format("<b>You</b> click for a card"));
         GameViewController.AddUnknownCardToHand();        
     }
 
     public void ClickForCredit()
-    {
-        Debug.Log("Clicking for credit");
+    {        
         _actions.Add(new PlayerAction(ActionType.CLICK_FOR_CREDIT));
         _game.Player.ChangeCredits(1);
+        GameViewController.AddGameLogMessage(string.Format("<b>You</b> click for a creidt"));
         ChangeClicks(-1);
     }
     
@@ -339,6 +380,8 @@ public class GameClientController : NetworkBehaviour {
         ship.AdvanceConstruction(1);
         _actions.Add(new AdvanceConstructionAction(ship, shipyard));
         ChangeClicks(-1);
+
+        GameViewController.AddGameLogMessage(string.Format("<b>You</b> advance construction of {0}", ship.CardName));
         return true;
     }
 
@@ -359,10 +402,11 @@ public class GameClientController : NetworkBehaviour {
         // if we get here, go ahead and play it
         _actions.Add(new ShipyardAction(shipyard));
         _game.Player.Shipyards.Add(shipyard);
-        ChangeClicks(-1);
         _game.Player.ChangeCredits(-shipyard.BaseCost);
+        ChangeClicks(-1);        
 
-        GameViewController.MoveToConstructionArea(shipyard, true);   
+        GameViewController.MoveToConstructionArea(shipyard, true);
+        GameViewController.AddGameLogMessage(string.Format("<b>You</b> play {0}", shipyard.CardName));
 
         return true;
     }
@@ -387,6 +431,51 @@ public class GameClientController : NetworkBehaviour {
         _actions.Add(new DeployAction(ship, shipyard));
 
         GameViewController.DeployShip(ship, true);
+
+        GameViewController.AddGameLogMessage(string.Format("<b>You</b> deploy {0}", ship.CardName));
+
+        return true;
+    }
+
+    public bool TryPlayOperation(Operation operation)
+    {
+        // card must be in the players hand
+        if (!_game.Player.Hand.Contains(operation))
+            return false;
+        
+        // need enough money
+        if (operation.BaseCost > _game.Player.Credits)
+            return false;
+
+        // playing operations costs a click
+        if (_game.Player.Clicks < 1)
+            return false;
+
+        // if we get here is all good, play the card
+        _actions.Add(new OperationAction(operation));
+
+        if (operation.OnPlay != null)
+        {
+            operation.OnPlay(_game, _game.Player);
+        }
+
+        _game.Player.ChangeCredits(-operation.BaseCost);
+        _game.Player.Hand.Remove(operation);        
+        
+        if (operation.OperationType == OperationType.ONESHOT)
+        {
+            _game.Player.Discard.Add(operation);
+            GameViewController.DestroyCardTransform(operation);
+        }
+        else
+        {
+            _game.Player.OngoingOperations.Add(operation);
+            GameViewController.MoveToConstructionArea(operation, true);
+        }
+
+        ChangeClicks(-1);
+
+        GameViewController.AddGameLogMessage(string.Format("<b>You</b> play {0}", operation.CardName));
 
         return true;
     }
@@ -428,7 +517,7 @@ public class GameClientController : NetworkBehaviour {
         UpdatePlayerStateGUI();
         EnableDisableControls();
 
-        Debug.Log(string.Format("Hosting card {0} on shipyard {1}", ship.CardId, shipyard.CardId));
+        GameViewController.AddGameLogMessage(string.Format("<b>You</b> host {0} on {1}", ship.CardName, shipyard.CardName));
 
         return true;
     }

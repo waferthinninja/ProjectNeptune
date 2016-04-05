@@ -52,7 +52,15 @@ public class DropHandler : MonoBehaviour, IDropHandler, IPointerEnterHandler, IP
                         d.returnToParent = false;
                     }
                     
-                }            
+                }    
+                
+                if (card.CardType == CardType.OPERATION)
+                {
+                    if (GameClientController.TryPlayOperation((Operation)card))
+                    {
+                        d.returnToParent = false;
+                    }
+                }        
             }
         }
     }

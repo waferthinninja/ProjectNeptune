@@ -140,6 +140,7 @@ public class GameServerController : NetworkBehaviour {
         }
     }
 
+    // TODO - now that both client and server are using the same Game object, can possibly merge client and server code into a common class?
     private void ProcessAction(string action, Game game, Player player, Player opponent)
     {
         string[] actionData = action.Split('|');
@@ -172,10 +173,43 @@ public class GameServerController : NetworkBehaviour {
                 shipyardId = actionData[1];
                 ProcessShipyardAction(player, opponent, game, shipyardId);
                 break;
+            case ActionType.OPERATION:
+                string operationId = actionData[1];
+                ProcessOperationAction(player, opponent, game, operationId);
+                break;
             default:
                 ServerLogError("Unknown action type [" + actionType + "]", game);
                 break;
         }
+    }
+
+    private void ProcessOperationAction(Player player, Player opponent, Game game, string operationId)
+    {
+        Operation operation = (Operation)FindCardIn(operationId, player.Hand);
+
+        // TODO - error if not found
+
+        // TODO - error if not enough credits
+                
+        player.OngoingOperations.Add(operation);
+        player.ChangeClicks(-1);
+        player.ChangeCredits(-operation.BaseCost);
+        if (operation.OnPlay != null)
+        {
+            operation.OnPlay(game, player);
+        }
+        player.Hand.Remove(operation);
+
+        if (operation.OperationType == OperationType.ONESHOT)
+        {
+            player.Discard.Add(operation);
+        }
+        else
+        {
+            player.OngoingOperations.Add(operation);
+        }
+
+        ServerLog(string.Format("Playing operation {0}({1}) for {2}", operation.CardName, operation.CardId, player.Name));
     }
 
     private void ProcessShipyardAction(Player player, Player opponent, Game game, string shipyardId)
@@ -292,7 +326,12 @@ public class GameServerController : NetworkBehaviour {
         shipyard.HostCard(ship);
         ship.StartConstruction();
         ChangeCredits(player, -ship.BaseCost);
-        ChangeClicks(player, -1);        
+        ChangeClicks(player, -1);       
+        if (ship.OnPlay != null)
+        {
+            ship.OnPlay(game, player);
+        }
+         
         return true;
     }
 
@@ -323,7 +362,6 @@ public class GameServerController : NetworkBehaviour {
         var cardMsg = new MessageTypes.DrawnCardMessage();
         cardMsg.CardCodename = card.CardCodename.ToString();
         cardMsg.cardId = card.CardId;
-        cardMsg.cardsInDeck = player.Deck.GetCount();
         NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.DRAWN_CARD, cardMsg);
 
         ServerLog(string.Format("{0} clicks for a card", player.Name), game);
@@ -391,9 +429,34 @@ public class GameServerController : NetworkBehaviour {
 
             // communicate starting state to the players
             SendStartingState(game);
+
+            // draw and send starting hands
+            DrawAndSendStartingHands(game);
         }
     }
-    
+
+    private void DrawAndSendStartingHands(Game game)
+    {
+        DrawAndSendStartingHand(game, game.Player);
+        DrawAndSendStartingHand(game, game.Opponent);
+    }
+
+    private void DrawAndSendStartingHand(Game game, Player player)
+    {
+        player.DrawStartingHand();
+
+        // send starting hand
+        for (int i = 0; i < player.Hand.Count; i++)
+        {
+            var cardMsg = new MessageTypes.DrawnCardMessage();
+            var card = player.Hand[i];
+            ServerLog(string.Format("{0} card{1}:{2}", player.Name, i, card.CardName), game);
+            cardMsg.CardCodename = card.CardCodename.ToString();
+            cardMsg.cardId = card.CardId;
+            NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.DRAWN_CARD, cardMsg);
+        }
+    }
+
     private void SendStartingState(Game game)
     {
         SendStartingStateToPlayer(game, game.Player, game.Opponent);
@@ -418,18 +481,7 @@ public class GameServerController : NetworkBehaviour {
 
         var msg = new MessageTypes.SetupGameMessage();       
         NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.SETUP_GAME, msg);    
-        
-        // send starting hand
-        for (int i = 0; i < player.Hand.Count; i++)
-        {
-            var cardMsg = new MessageTypes.DrawnCardMessage();
-            var card = player.Hand[i];
-            ServerLog(string.Format("{0} card{1}:{2}", player.Name, i, card.CardName), game);
-            cardMsg.CardCodename = card.CardCodename.ToString();
-            cardMsg.cardId = card.CardId;
-            cardMsg.cardsInDeck = player.Deck.GetCount();
-            NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.DRAWN_CARD, cardMsg);
-        }                
+                 
     }
 
     private void SendGameLogToPlayer(Player player, string message)

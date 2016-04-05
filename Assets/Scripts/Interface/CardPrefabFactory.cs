@@ -14,7 +14,7 @@ public class CardPrefabFactory : MonoBehaviour {
 
     public Transform CreateCardPrefab(Card card)
     {
-        Debug.Log("Creating prefab of " + card.CardCodename);
+        //Debug.Log("Creating prefab of " + card.CardCodename);
         Transform transform;
         switch (card.CardType)
         {

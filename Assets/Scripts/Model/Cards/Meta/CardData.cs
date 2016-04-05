@@ -14,6 +14,7 @@ public static class CardData {
         { CardCodename.CRUISER, CardType.SHIP },
         { CardCodename.FRIGATE, CardType.SHIP },
         { CardCodename.SHORT_TERM_INVESTMENT, CardType.OPERATION },
+        { CardCodename.LONG_TERM_INVESTMENT, CardType.OPERATION },
         { CardCodename.EFFICIENCY_DRIVE, CardType.OPERATION }
     };
 
@@ -28,6 +29,7 @@ public static class CardData {
         { CardCodename.CRUISER, "Cool cruiser" },
         { CardCodename.FRIGATE, "Funky Frigate" },
         { CardCodename.SHORT_TERM_INVESTMENT, "Short term investment" },
+        { CardCodename.LONG_TERM_INVESTMENT, "Long term investment" },
         { CardCodename.EFFICIENCY_DRIVE, "Efficiency drive" }
     };
 
@@ -41,12 +43,14 @@ public static class CardData {
         { CardCodename.CRUISER, "cruiser_s" },
         { CardCodename.FRIGATE, "frigate_s" },
         { CardCodename.SHORT_TERM_INVESTMENT, "card" },
+        { CardCodename.LONG_TERM_INVESTMENT, "card" },
         { CardCodename.EFFICIENCY_DRIVE, "card" }
     };
 
     public static Dictionary<CardCodename, string> CardTexts = new Dictionary<CardCodename, string>
     {
         { CardCodename.SHORT_TERM_INVESTMENT, "Gain 9 credits" },
+        { CardCodename.LONG_TERM_INVESTMENT, "Gain 1 credit at the start of each turn" },
         { CardCodename.EFFICIENCY_DRIVE, "For the rest of the turn, when you click for a credit, gain an additional credit" }
     };
 
@@ -60,6 +64,7 @@ public static class CardData {
         { CardCodename.CRUISER, 6 },
         { CardCodename.FRIGATE, 3 },
         { CardCodename.SHORT_TERM_INVESTMENT, 5 },
+        { CardCodename.LONG_TERM_INVESTMENT, 5 },
         { CardCodename.EFFICIENCY_DRIVE, 0 }
     };
 
@@ -72,22 +77,14 @@ public static class CardData {
         { CardCodename.CRUISER, GameState.LOGISTICS_PLANNING },
         { CardCodename.FRIGATE, GameState.LOGISTICS_PLANNING },
         { CardCodename.SHORT_TERM_INVESTMENT, GameState.LOGISTICS_PLANNING },
+        { CardCodename.LONG_TERM_INVESTMENT, GameState.LOGISTICS_PLANNING },
         { CardCodename.EFFICIENCY_DRIVE, GameState.LOGISTICS_PLANNING }
     };
 
     public static Dictionary<CardCodename, Action<Game, Player>> OnPlayActions = new Dictionary<CardCodename, Action<Game, Player>>
     {
-        { CardCodename.UNKNOWN, new Action<Game, Player>(OnPlayAction.DoNothing)},
-        { CardCodename.SHIPYARD, new Action<Game, Player>(OnPlayAction.DoNothing)},
-        { CardCodename.SMALL_SHIPYARD,new Action<Game, Player>(OnPlayAction.DoNothing) },
-        { CardCodename.BATTLESHIP, new Action<Game, Player>(OnPlayAction.DoNothing) },
-        { CardCodename.CRUISER, new Action<Game, Player>(OnPlayAction.DoNothing) },
-        { CardCodename.FRIGATE, new Action<Game, Player>(OnPlayAction.DoNothing) },
-        { CardCodename.SHORT_TERM_INVESTMENT, new Action<Game, Player>(OnPlayAction.DoNothing) },
-        { CardCodename.EFFICIENCY_DRIVE, new Action<Game, Player>(OnPlayAction.DoNothing) }
-    };    
-
-        
+        { CardCodename.SHORT_TERM_INVESTMENT, new Action<Game, Player>(OnPlayAction.ShortTermInvestment) }
+    };         
 
     // ship only data 
     public static Dictionary<CardCodename, int> Sizes = new Dictionary<CardCodename, int>
@@ -127,4 +124,11 @@ public static class CardData {
         { CardCodename.SMALL_SHIPYARD, 5 }
     };
 
+    // operation only data
+    public static Dictionary<CardCodename, OperationType> OperationTypes = new Dictionary<CardCodename, OperationType>
+    {
+        { CardCodename.SHORT_TERM_INVESTMENT, OperationType.ONESHOT},
+        { CardCodename.LONG_TERM_INVESTMENT, OperationType.ONGOING},
+        { CardCodename.EFFICIENCY_DRIVE, OperationType.TURN }
+    };
 }

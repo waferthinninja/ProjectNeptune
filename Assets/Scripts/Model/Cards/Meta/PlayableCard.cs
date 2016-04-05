@@ -23,7 +23,8 @@ public abstract class PlayableCard : Card {
         }
         else
         {
-            throw new Exception(string.Format("Failed to get on play action for {0}", CardCodename));
+            return null;
+            //throw new Exception(string.Format("Failed to get on play action for {0}", CardCodename));
         }
     }
 

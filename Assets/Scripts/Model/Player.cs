@@ -17,6 +17,7 @@ public class Player {
     public List<PlayableCard> Discard { get; private set; }
     public List<Shipyard> Shipyards { get; private set; }
     public List<Ship> Ships { get; private set; }
+    public List<Operation> OngoingOperations { get; private set; }
 
     public Player(string name, int connectionId)
     {
@@ -76,13 +77,16 @@ public class Player {
 
         // initialize lists
         Ships = new List<Ship>();
-
-        // draw starting hand
+        OngoingOperations = new List<Operation>();
         Hand = new List<PlayableCard>();
-        Discard = new List<PlayableCard>();
+        Discard = new List<PlayableCard>();             
+    }
+
+    public void DrawStartingHand()
+    {
         for (int i = 0; i < Deck.Faction.StartingHandSize; i++)
         {
             Hand.Add(Deck.Draw());
-        }        
+        }
     }
 }
