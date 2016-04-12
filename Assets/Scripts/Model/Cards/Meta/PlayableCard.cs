@@ -3,7 +3,7 @@
 public abstract class PlayableCard : Card {
 
     public int BaseCost { get; protected set; }
-    public GameState Phase { get; protected set; } // which game state the game needs to be in to legally play this
+    public GamePhase Phase { get; protected set; } // which game state the game needs to be in to legally play this
                                                    // Use this for initialization
 
     public Action<Game, Player> OnPlay;
@@ -41,7 +41,7 @@ public abstract class PlayableCard : Card {
     }
     
 
-    private GameState DeterminePhase()
+    private GamePhase DeterminePhase()
     {
         if (CardData.Phases.ContainsKey(CardCodename))
         {

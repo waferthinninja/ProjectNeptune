@@ -4,5 +4,6 @@
     SHIP,
     SHIPYARD,
     HOMEWORLD,
-    OPERATION
+    OPERATION,
+    STRATEGY
 }

@@ -1,4 +1,4 @@
-﻿public enum GameState
+﻿public enum GamePhase
 {
     AWAITING_CHALLENGER,
     SETUP,
@@ -9,7 +9,6 @@
     LASER_WEAPON_RESOLUTION,
     POINT_DEFENCE_PLANNING,
     POINT_DEFENCE_RESOLUTION,
-    BOMBARDMENT, 
-    WAITING_FOR_OPPONENT
+    BOMBARDMENT
 }
 

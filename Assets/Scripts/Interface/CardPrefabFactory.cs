@@ -12,7 +12,7 @@ public class CardPrefabFactory : MonoBehaviour {
 
     public Transform WeaponPrefab;
 
-    public Transform CreateCardPrefab(Card card)
+    public Transform CreateCardPrefab(Card card, bool belongsToPlayer)
     {
         //Debug.Log("Creating prefab of " + card.CardCodename);
         Transform transform;
@@ -22,7 +22,7 @@ public class CardPrefabFactory : MonoBehaviour {
                 transform = CreateUnknownPrefab(card);
                 return transform; // dont need anything more for this "fake" card                
             case CardType.SHIP:
-                transform = CreateShipPrefab(card);
+                transform = CreateShipPrefab(card, belongsToPlayer);
                 break;
             case CardType.SHIPYARD:
                 transform = CreateShipyardPrefab(card);
@@ -87,8 +87,9 @@ public class CardPrefabFactory : MonoBehaviour {
         return transform;
     }
 
-    private Transform CreateShipPrefab(Card card)
+    private Transform CreateShipPrefab(Card card, bool belongsToPlayer)
     {
+        //Debug.Log("Instantiating " + card.CardName + (belongsToPlayer ? " belonging to Player" : " belonging to Opponent"));
         Transform transform = Instantiate(ShipPrefab);
 
         Ship ship = (Ship)card;
@@ -99,13 +100,22 @@ public class CardPrefabFactory : MonoBehaviour {
         var health = (Text)transform.Find("Health").GetComponent(typeof(Text));
         health.text = string.Format("{0}/{1}", ship.CurrentHealth, ship.MaxHealth);
 
+        // add weapons
         var weaponsPanel = transform.Find("WeaponsPanel");
-        foreach(Weapon weapon in ship.Weapons)
+        for (int i = 0; i < ship.Weapons.Count; i++)
         {
+            Weapon weapon = ship.Weapons[i];
             Transform weaponTransform = Instantiate(WeaponPrefab);
             var weaponText = (Text)weaponTransform.Find("WeaponText").GetComponent(typeof(Text));
             weaponText.text = string.Format("{0} {1}", weapon.WeaponType, weapon.Damage);
             weaponTransform.SetParent(weaponsPanel);
+
+            // link to weapon
+            var weaponHandler = weaponTransform.GetComponent<WeaponHandler>();
+            weaponHandler.HostShip = ship;
+            weaponHandler.Weapon = weapon;
+            weaponHandler.WeaponIndex = i;
+            weaponHandler.BelongsToPlayer = belongsToPlayer;
         }
 
         return transform;

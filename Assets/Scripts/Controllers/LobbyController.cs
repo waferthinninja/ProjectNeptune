@@ -364,10 +364,10 @@ public class LobbyController : NetworkBehaviour {
             sb.Append("|");
             sb.Append(key);
             sb.Append("|");
-            sb.Append(_games[key].GameState == GameState.AWAITING_CHALLENGER ? "1" : "0");
+            sb.Append(_games[key].GamePhase == GamePhase.AWAITING_CHALLENGER ? "1" : "0");
             sb.Append("|");
             sb.Append(_games[key].Player.Name);
-            sb.Append(_games[key].GameState == GameState.AWAITING_CHALLENGER ? "" : " vs " + _games[key].Opponent.Name );
+            sb.Append(_games[key].GamePhase == GamePhase.AWAITING_CHALLENGER ? "" : " vs " + _games[key].Opponent.Name );
         }
 
         return sb.ToString();
@@ -385,7 +385,7 @@ public class LobbyController : NetworkBehaviour {
 
         foreach (int key in _games.Keys)
         {            
-            if (_games[key].GameState == GameState.AWAITING_CHALLENGER)
+            if (_games[key].GamePhase == GamePhase.AWAITING_CHALLENGER)
             {
                 sb.Append(_games[key].Player.Name + " (Waiting)");
                 sb.Append("|");

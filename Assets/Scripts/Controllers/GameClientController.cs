@@ -14,6 +14,13 @@ public class GameClientController : NetworkBehaviour {
     private Game _game; // local game position
     private List<PlayerAction> _actions;
 
+    public Action<Card> TargetingCallback;
+
+    internal void EnterTargetingMode()
+    {
+        GameViewController.EnterTargetingMode();
+    }
+
     void Start()
     {
         _actions = new List<PlayerAction>();
@@ -32,7 +39,7 @@ public class GameClientController : NetworkBehaviour {
         _client.RegisterHandler((short)MessageTypes.MessageType.SETUP_GAME, OnSetupGameMessage);
         _client.RegisterHandler((short)MessageTypes.MessageType.DRAWN_CARD, OnDrawnCardMessage);
         _client.RegisterHandler((short)MessageTypes.MessageType.GAME_LOG, OnGameLogMessage);
-        _client.RegisterHandler((short)MessageTypes.MessageType.SEND_ACTIONS, OnSendActionsMessage);
+        _client.RegisterHandler((short)MessageTypes.MessageType.ACTIONS, OnActionsMessage);
     }
 
     private void OnDeckFirstMessage(NetworkMessage netMsg)
@@ -52,10 +59,20 @@ public class GameClientController : NetworkBehaviour {
         LobbyController.Opponent.DeckData += msg.deckDataFragment;
     }
 
-    private void OnSendActionsMessage(NetworkMessage netMsg)
+    private void OnActionsMessage(NetworkMessage netMsg)
     {
-        var msg = netMsg.ReadMessage<MessageTypes.SendActionsMessage>();
+        var msg = netMsg.ReadMessage<MessageTypes.ActionsMessage>();
         ProcessOpponentActions(msg.actionData);
+
+        if (_game.GamePhase == GamePhase.LOGISTICS_PLANNING)
+        {
+            // for now, advance straight to combat planning
+            _game.StartLogisticsResolutionPhase();
+            _game.StartCombatPlanningPhase();
+        }
+
+        GameViewController.UpdateGamePhase(_game.GamePhase);
+        GameViewController.EnableDisableControls(_game.GamePhase, false, _game.IsAwaitingOpponent());
     }
 
     private void ProcessOpponentActions(string actionData)
@@ -229,7 +246,7 @@ public class GameClientController : NetworkBehaviour {
        
     private void EnableDisableControls()
     {
-        GameViewController.EnableDisableControls(_game.GameState, _game.Player.Clicks > 0);     
+        GameViewController.EnableDisableControls(_game.GamePhase, _game.Player.Clicks > 0, _game.IsAwaitingOpponent());     
     }
 
     private void OnSetupGameMessage(NetworkMessage netMsg)
@@ -249,7 +266,7 @@ public class GameClientController : NetworkBehaviour {
         
         GameViewController.HideDeckSelectDialog();
         WriteGameTurnToLog();
-        GameViewController.EnableDisableControls(_game.GameState, true);
+        GameViewController.EnableDisableControls(_game.GamePhase, true, _game.IsAwaitingOpponent());
     }
 
     private void SetupInitialGameView()
@@ -273,7 +290,7 @@ public class GameClientController : NetworkBehaviour {
             GameViewController.AddShipyard(shipyard, false);
         }
 
-        GameViewController.UpdateGameState(_game.GameState);
+        GameViewController.UpdateGamePhase(_game.GamePhase);
     }
 
     private void WriteGameTurnToLog()
@@ -522,11 +539,33 @@ public class GameClientController : NetworkBehaviour {
         return true;
     }
     
+    public bool TryTarget(Ship firer, int weaponIndex, Card target)
+    {
+        // valid targets will be IDamageable
+        if (target is IDamageable == false)
+        {
+            return false;
+        }
+
+        // TODO - validate that firer belongs to player
+
+        // TODO - check validity of index
+
+        // TODO - check that target belongs to enemy ? (might be possible to fire on own ships?)
+
+        // if we get here, all good, target away
+        firer.Weapons[weaponIndex].SetTarget((IDamageable)target);
+       
+        // TODO - move this to store all weapon targets when submitted (so we dont have to change/remove when retargetting weapons)
+        // _actions.Add(new WeaponTargetAction(firer, weaponIndex, (IDamageable)target));
+        
+        return true;
+    }
 
     public void SubmitActions()
     {
         // TODO - warn player if they have clicks remaining
-        MessageTypes.SendActionsMessage msg = new MessageTypes.SendActionsMessage();
+        MessageTypes.ActionsMessage msg = new MessageTypes.ActionsMessage();
 
         // serialize actions
         StringBuilder data = new StringBuilder();
@@ -536,8 +575,10 @@ public class GameClientController : NetworkBehaviour {
         }
         msg.actionData = data.ToString().TrimEnd('#');
 
-        NetworkManager.singleton.client.Send((short)MessageTypes.MessageType.SEND_ACTIONS, msg);
+        // TODO - we may need to split this into chunks
+        NetworkManager.singleton.client.Send((short)MessageTypes.MessageType.ACTIONS, msg);
 
+        _actions.Clear();
         _game.AwaitOpponent();
         EnableDisableControls();
     }

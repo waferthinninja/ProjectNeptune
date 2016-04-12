@@ -17,7 +17,7 @@ public class GameServerController : NetworkBehaviour {
         NetworkServer.RegisterHandler((short)MessageTypes.MessageType.DECK_FRAGMENT, OnDeckFragmentMessage);
         NetworkServer.RegisterHandler((short)MessageTypes.MessageType.DECK_FIRST, OnDeckFirstMessage);
         NetworkServer.RegisterHandler((short)MessageTypes.MessageType.PLAYER_READY, OnPlayerReadyMessage);
-        NetworkServer.RegisterHandler((short)MessageTypes.MessageType.SEND_ACTIONS, OnSendActionsMessage);
+        NetworkServer.RegisterHandler((short)MessageTypes.MessageType.ACTIONS, OnActionsMessage);
     }
 
     private void OnDeckFirstMessage(NetworkMessage netMsg)
@@ -76,7 +76,7 @@ public class GameServerController : NetworkBehaviour {
         ServerLogError(string.Format("Game {0} - {1}", game.GameNumber, message));
     }
 
-    void OnSendActionsMessage(NetworkMessage netMsg)
+    void OnActionsMessage(NetworkMessage netMsg)
     {
         // determine player and game from connection
         int connectionId = netMsg.conn.connectionId;
@@ -84,7 +84,7 @@ public class GameServerController : NetworkBehaviour {
         Game game = GetGameFromConnection(connectionId);
 
         // read the message
-        var msg = netMsg.ReadMessage<MessageTypes.SendActionsMessage>();
+        var msg = netMsg.ReadMessage<MessageTypes.ActionsMessage>();
         
         // store in the game object
         if (game.Player == player)
@@ -104,7 +104,6 @@ public class GameServerController : NetworkBehaviour {
             // if both players now submitted, process actions, advance the game state
             ProcessActions(game);
             game.StartLogisticsResolutionPhase();
-            //SendGameStateToPlayers(game);
 
             // advance the game to the combat planning stage 
             // dont send this to clients, they will advance themselves after 
@@ -126,9 +125,9 @@ public class GameServerController : NetworkBehaviour {
 
     private void SendActionsToPlayer(string actionData, Player player)
     {
-        var actionMsg = new MessageTypes.SendActionsMessage();
+        var actionMsg = new MessageTypes.ActionsMessage();
         actionMsg.actionData = actionData;
-        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.SEND_ACTIONS, actionMsg);
+        NetworkServer.SendToClient(player.ConnectionId, (short)MessageTypes.MessageType.ACTIONS, actionMsg);
     }
 
     private void ProcessActionsForPlayer(Game game, string actionData, Player player, Player opponent)
@@ -338,7 +337,7 @@ public class GameServerController : NetworkBehaviour {
     void ProcessClickForCardAction(Player player, Game game)
     {
         // if the game is not in the right phase log error and return
-        if (game.GameState != GameState.LOGISTICS_PLANNING)
+        if (game.GamePhase != GamePhase.LOGISTICS_PLANNING)
         {
             ServerLogError("Received a click for card message in the wrong game phase Player=" + player.Name);
             return;
@@ -372,7 +371,7 @@ public class GameServerController : NetworkBehaviour {
     void ProcessClickForCreditAction(Player player, Game game)
     {
         // if the game is not in the right phase log error and return
-        if (game.GameState != GameState.LOGISTICS_PLANNING)
+        if (game.GamePhase != GamePhase.LOGISTICS_PLANNING)
         {
             ServerLogError("Received a click for credit message in the wrong game phase Player=" + player.Name);
             return;

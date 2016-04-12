@@ -18,7 +18,7 @@ public class MessageTypes
         PLAYER_READY = 2000,    // C -> S say they are ready to start the game - and send the deck they will be playing with
         SETUP_GAME = 2001,      // S -> C both players are ready  - and send the opponents "public" deck details
         DRAWN_CARD = 2002,      // S -> C when a player draws a card from their deck
-        SEND_ACTIONS = 2003,    // C <-> S to submit actions for the turn (then server transmits to opponent to update local state)
+        ACTIONS = 2003,         // C <-> S to submit actions for the turn (then server transmits to opponent to update local state)
         GAME_LOG = 2004,        // S -> C to send details of game actions to display 
         DECK_FIRST = 2005,      // C <-> S probably a clumsy way to handle this, but deck too large to send in one go so we send these chunks
         DECK_FRAGMENT = 2006    //          first one tells to start storing it, the rest are appended, then some other message will use the full data
@@ -37,7 +37,7 @@ public class MessageTypes
     public class PlayerReadyMessage : MessageBase   {  }
     public class SetupGameMessage : MessageBase     {  }
     public class DrawnCardMessage : MessageBase     { public string CardCodename; public string cardId; } 
-    public class SendActionsMessage : MessageBase   { public string actionData; }
+    public class ActionsMessage : MessageBase       { public string actionData; }
     public class GameLogMessage : MessageBase       { public string message; }
     public class DeckFirstMessage : MessageBase     { public string deckDataFragment; }
     public class DeckFragmentMessage : MessageBase  { public string deckDataFragment; }

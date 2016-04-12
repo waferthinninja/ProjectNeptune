@@ -8,10 +8,12 @@ public class Game  {
     public int GameNumber { get; private set; }
     public Player Player { get; private set; } 
     public Player Opponent { get; private set; }
-    public GameState GameState { get; private set; }
+    public GamePhase GamePhase { get; private set; }
     public int GameTurn { get; private set; }
     public string HostActionData { get; private set; }
     public string ChallengerActionData { get; private set; }
+
+    private bool _waitingForOpponent; // this replaces GamePhase.WAITING_FOR_OPPONENT, we instead want to keep the correct game phase in GameState
 
     private bool _hostReady;
     private bool _challengerReady;
@@ -20,17 +22,17 @@ public class Game  {
     {
         GameNumber = gameNumber;
         Player = player;
-        GameState = GameState.AWAITING_CHALLENGER;
+        GamePhase = GamePhase.AWAITING_CHALLENGER;
     }
 
     public bool AddOpponent(Player opponent)
     {
-        if (Opponent != null || GameState != GameState.AWAITING_CHALLENGER)
+        if (Opponent != null || GamePhase != GamePhase.AWAITING_CHALLENGER)
         {
             return false;
         }
         Opponent = opponent;
-        GameState = GameState.SETUP;
+        GamePhase = GamePhase.SETUP;
 
         return true;
     }
@@ -68,26 +70,37 @@ public class Game  {
 
     public void AwaitOpponent()
     {
-        GameState = GameState.WAITING_FOR_OPPONENT;
+        _waitingForOpponent = true;
+    }
+
+    public bool IsAwaitingOpponent()
+    {
+        return _waitingForOpponent;
     }
 
     public void StartLogisticsPlanningPhase()
     {
-        GameState = GameState.LOGISTICS_PLANNING;
+        ChangeGamePhase(GamePhase.LOGISTICS_PLANNING);
         HostActionData = "NONE";
         ChallengerActionData = "NONE";
     }
 
     public void StartLogisticsResolutionPhase()
     {
-        GameState = GameState.LOGISTICS_RESOLUTION;
+        ChangeGamePhase(GamePhase.LOGISTICS_RESOLUTION);
     }
 
     public void StartCombatPlanningPhase()
     {
-        GameState = GameState.COMBAT_PLANNING;
+        ChangeGamePhase(GamePhase.COMBAT_PLANNING);
         HostActionData = "NONE";
         ChallengerActionData = "NONE";
+    }
+
+    private void ChangeGamePhase(GamePhase gamePhase)
+    {
+        GamePhase = gamePhase;
+        _waitingForOpponent = false;
     }
 
     public void SubmitHostActions(string data)

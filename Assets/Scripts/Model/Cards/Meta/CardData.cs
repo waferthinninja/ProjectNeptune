@@ -60,25 +60,25 @@ public static class CardData {
         { CardCodename.UNKNOWN, 99999 },
         { CardCodename.SHIPYARD, 10 },
         { CardCodename.SMALL_SHIPYARD, 6 },
-        { CardCodename.BATTLESHIP, 9 },
-        { CardCodename.CRUISER, 6 },
+        { CardCodename.BATTLESHIP, 5 },
+        { CardCodename.CRUISER, 4 },
         { CardCodename.FRIGATE, 3 },
         { CardCodename.SHORT_TERM_INVESTMENT, 5 },
         { CardCodename.LONG_TERM_INVESTMENT, 5 },
         { CardCodename.EFFICIENCY_DRIVE, 0 }
     };
 
-    public static Dictionary<CardCodename, GameState> Phases = new Dictionary<CardCodename, GameState>
+    public static Dictionary<CardCodename, GamePhase> Phases = new Dictionary<CardCodename, GamePhase>
     {
-        { CardCodename.UNKNOWN, GameState.SETUP },  
-        { CardCodename.SHIPYARD, GameState.LOGISTICS_PLANNING },
-        { CardCodename.SMALL_SHIPYARD, GameState.LOGISTICS_PLANNING },
-        { CardCodename.BATTLESHIP, GameState.LOGISTICS_PLANNING },
-        { CardCodename.CRUISER, GameState.LOGISTICS_PLANNING },
-        { CardCodename.FRIGATE, GameState.LOGISTICS_PLANNING },
-        { CardCodename.SHORT_TERM_INVESTMENT, GameState.LOGISTICS_PLANNING },
-        { CardCodename.LONG_TERM_INVESTMENT, GameState.LOGISTICS_PLANNING },
-        { CardCodename.EFFICIENCY_DRIVE, GameState.LOGISTICS_PLANNING }
+        { CardCodename.UNKNOWN, GamePhase.SETUP },  
+        { CardCodename.SHIPYARD, GamePhase.LOGISTICS_PLANNING },
+        { CardCodename.SMALL_SHIPYARD, GamePhase.LOGISTICS_PLANNING },
+        { CardCodename.BATTLESHIP, GamePhase.LOGISTICS_PLANNING },
+        { CardCodename.CRUISER, GamePhase.LOGISTICS_PLANNING },
+        { CardCodename.FRIGATE, GamePhase.LOGISTICS_PLANNING },
+        { CardCodename.SHORT_TERM_INVESTMENT, GamePhase.LOGISTICS_PLANNING },
+        { CardCodename.LONG_TERM_INVESTMENT, GamePhase.LOGISTICS_PLANNING },
+        { CardCodename.EFFICIENCY_DRIVE, GamePhase.LOGISTICS_PLANNING }
     };
 
     public static Dictionary<CardCodename, Action<Game, Player>> OnPlayActions = new Dictionary<CardCodename, Action<Game, Player>>
@@ -89,9 +89,9 @@ public static class CardData {
     // ship only data 
     public static Dictionary<CardCodename, int> Sizes = new Dictionary<CardCodename, int>
     {
-        { CardCodename.BATTLESHIP, 10},
-        { CardCodename.CRUISER, 5 },
-        { CardCodename.FRIGATE, 3 }
+        { CardCodename.BATTLESHIP, 3},
+        { CardCodename.CRUISER, 2 },
+        { CardCodename.FRIGATE, 1 }
     };
 
     public static Dictionary<CardCodename, int> MaxHealths = new Dictionary<CardCodename, int>
