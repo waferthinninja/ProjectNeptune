@@ -544,6 +544,7 @@ public class GameClientController : NetworkBehaviour {
         // valid targets will be IDamageable
         if (target is IDamageable == false)
         {
+            Debug.Log("Target is not damagable");
             return false;
         }
 

@@ -43,7 +43,7 @@ public class GameViewController : MonoBehaviour {
     public Transform PlayerShipAreaGUI;
     public Transform GamePhaseGUI;
     
-    private Dictionary<string, Transform> _transformById;
+    public Dictionary<string, Transform> _transformById;
 
     void Start()
     {

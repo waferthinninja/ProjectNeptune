@@ -6,8 +6,10 @@ public class WeaponHandler : MonoBehaviour {
     public Ship HostShip;
     public Weapon Weapon;
     public int WeaponIndex;
-    public Card Target;
-    public bool BelongsToPlayer; // perhaps shouldnt need this, convenient
+    private Card Target;
+    public bool BelongsToPlayer; // perhaps shouldnt need this?
+    public Transform TargetTransform;
+    public Transform Arrow; 
 
     public void StartTargeting()
     {
@@ -36,6 +38,27 @@ public class WeaponHandler : MonoBehaviour {
 
     public void ClearTarget()
     {
+        Debug.Log(string.Format("Clearing target for {0}'s {1} {2}", HostShip.CardName, Weapon.WeaponType, Weapon.Damage));
         Target = null;
+    }
+
+    void Update()
+    {
+        if (Target == null)
+        {
+            Arrow.localScale = new Vector3();
+        }
+        else
+        {            
+            // scale and position arrow so it links the weapon to its target
+            GameViewController gameView = FindObjectOfType<GameViewController>();
+            TargetTransform = gameView._transformById[Target.CardId];
+            var vector = TargetTransform.position - this.transform.position;
+            Arrow.localPosition = vector / 2;
+            Arrow.localScale = new Vector3(3, vector.magnitude, 3);
+            Arrow.localRotation = Quaternion.FromToRotation(Vector3.up, vector);
+        }
+        
+        
     }
 }
