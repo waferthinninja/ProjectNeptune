@@ -70,9 +70,88 @@ public class GameClientController : NetworkBehaviour {
             _game.StartLogisticsResolutionPhase();
             _game.StartCombatPlanningPhase();
         }
+        else if (_game.GamePhase == GamePhase.COMBAT_PLANNING)
+        {
+            _game.StartLaserWeaponResolutionPhase();
+            ProcessLaserWeapons();
+        }
 
         GameViewController.UpdateGamePhase(_game.GamePhase);
         GameViewController.EnableDisableControls(_game.GamePhase, false, _game.IsAwaitingOpponent());
+    }
+
+    private void ProcessLaserWeapons()
+    {
+        // apply damage from all laser weapons
+        ProcessLaserWeaponsForPlayer(_game.Player);
+        ProcessLaserWeaponsForPlayer(_game.Opponent);
+
+        // now that all damage has been applied, remove any dead ships
+        DestroyDeadCardsForPlayer(_game.Player);
+        DestroyDeadCardsForPlayer(_game.Opponent);
+    }
+
+    private void DestroyDeadCardsForPlayer(Player player)
+    {
+        foreach (Ship ship in player.Ships)
+        {
+            if (ship.CurrentHealth < 1)
+            {
+                ClearAnythingTargeting(ship);
+                player.Ships.Remove(ship);                
+                GameViewController.RemoveDeadCard(ship);
+            }
+        }
+
+        foreach (Shipyard shipyard in player.Shipyards)
+        {
+            if (shipyard.CurrentHealth < 1)
+            {
+                ClearAnythingTargeting(shipyard);
+                player.Shipyards.Remove(shipyard);
+                GameViewController.RemoveDeadCard(shipyard);
+            }
+        }
+    }
+
+    private void ClearAnythingTargeting(IDamageable target)
+    {
+        ClearAnythingTargetingForPlayer(target, _game.Player);
+        ClearAnythingTargetingForPlayer(target, _game.Opponent);
+    }
+
+    private void ClearAnythingTargetingForPlayer(IDamageable target, Player player)
+    {
+        foreach (Ship ship in player.Ships)
+        {
+            for(int i = 0; i < ship.Weapons.Count; i++)
+            {
+                Weapon weapon = ship.Weapons[i];
+                if (weapon.Target == target)
+                {
+                    weapon.ClearTarget();
+                    GameViewController.ClearWeaponTarget(ship, i);
+                }
+            }
+        }
+    }
+
+    private void ProcessLaserWeaponsForPlayer(Player player)
+    {
+        // run through each weapon for each of the players ships and apply damage to the target if its a laser
+        foreach (Ship ship in player.Ships)
+        {
+            foreach (Weapon weapon in ship.Weapons)
+            {
+                if (weapon.WeaponType == WeaponType.LASER // is a laser
+                    && weapon.Target != null              // has a target
+                    && !(weapon.Target is Homeworld))     // target is not a Homeworld (these resolve later)
+                {
+                    weapon.Target.DealDamage(weapon.Damage);
+                    weapon.ClearTarget();
+                }
+            }
+        }
     }
 
     private void ProcessOpponentActions(string actionData)
@@ -128,10 +207,50 @@ public class GameClientController : NetworkBehaviour {
                 cardCodename = (CardCodename)Enum.Parse(typeof(CardCodename), actionData[2]);
                 ProcessOpponentOperationAction(operationId, cardCodename);
                 break;
+            case ActionType.WEAPON_TARGET:
+                shipId = actionData[1];
+                int weaponIndex = int.Parse(actionData[2]);
+                string targetId = actionData[3];
+                ProcessOpponentWeaponTargetAction(shipId, weaponIndex, targetId);
+                break;
             default:
                 Debug.LogError("Unknown action type [" + actionType + "]");
                 break;
         }
+    }
+
+    private void ProcessOpponentWeaponTargetAction(string shipId, int weaponIndex, string targetId)
+    {
+        // find ship
+        Ship ship = (Ship)FindCardIn(shipId, _game.Opponent.Ships);
+
+        // TODO - error if ship not active
+
+        // TODO - error if ship does not have enough weapons (invalid index)
+
+        // find target
+        IDamageable target = null;
+        if (_game.Player.Deck.Faction.Homeworld.CardId == targetId)
+        {
+            target = _game.Player.Deck.Faction.Homeworld;
+        }
+        else if (target == null)
+        {
+            target = FindCardIn(targetId, _game.Player.Ships);
+        }
+
+        if (target == null)
+        {
+            target = FindCardIn(targetId, _game.Player.Shipyards);
+        }
+
+        // TODO - error if target is not valid
+
+        // if we get here, all ok, set target
+        ship.Weapons[weaponIndex].SetTarget(target);
+        // need to find the handler on the weapon prefab and set the target
+        GameViewController.SetWeaponTarget(ship, weaponIndex, target);
+
     }
 
     private void ProcessOpponentOperationAction(string operationId, CardCodename cardCodename)
@@ -235,6 +354,11 @@ public class GameClientController : NetworkBehaviour {
         _game.Opponent.ChangeClicks(-1);
         _game.Opponent.DrawFromDeck();        
         GameViewController.AddGameLogMessage(string.Format("<b>{0}</b> clicks for a card", _game.Opponent.Name));
+    }
+
+    private T FindCardIn<T>(string cardId, List<T> findIn) where T : Card
+    {
+        return findIn.Find(t => t.CardId == cardId);
     }
 
     private void OnGameLogMessage(NetworkMessage netMsg)
@@ -564,9 +688,25 @@ public class GameClientController : NetworkBehaviour {
     }
 
     public void SubmitActions()
-    {
-        // TODO - warn player if they have clicks remaining
+    {        
         MessageTypes.ActionsMessage msg = new MessageTypes.ActionsMessage();
+
+        if (_game.GamePhase == GamePhase.COMBAT_PLANNING)
+        {
+            // cycle through the weapons and add target actions
+            // we defer to now rather than have to handle changing targets
+            foreach(Ship ship in _game.Player.Ships)
+            {
+                for (int weaponIndex = 0; weaponIndex < ship.Weapons.Count; weaponIndex++)
+                {
+                    Weapon weapon = ship.Weapons[weaponIndex];
+                    if (weapon.Target != null)
+                    {
+                        _actions.Add(new WeaponTargetAction(ship, weaponIndex, weapon.Target));
+                    }
+                }
+            }
+        }
 
         // serialize actions
         StringBuilder data = new StringBuilder();

@@ -196,6 +196,25 @@ public class GameViewController : MonoBehaviour {
         }
     }
 
+    public void ClearWeaponTarget(Ship ship, int weaponIndex)
+    {
+        Transform shipTransform = FindCardTransformById(ship.CardId);
+        Transform weaponPanel = shipTransform.Find("WeaponsPanel");
+        Transform weaponTransform = weaponPanel.GetChild(weaponIndex);
+        WeaponHandler handler = weaponTransform.GetComponent<WeaponHandler>();
+        handler.ClearTarget();
+    }
+
+    public void SetWeaponTarget(Ship ship, int weaponIndex, IDamageable target)
+    {
+        Transform shipTransform = FindCardTransformById(ship.CardId);
+        Transform weaponPanel = shipTransform.Find("WeaponsPanel");
+        Transform weaponTransform = weaponPanel.GetChild(weaponIndex);
+        WeaponHandler handler = weaponTransform.GetComponent<WeaponHandler>();
+        handler.SetOpponentTarget((Card)target);
+         
+    }
+
     public void UpdateConstructionRemaining(Ship ship)
     {
         Transform shipTransform = FindCardTransformById(ship.CardId);
@@ -240,6 +259,12 @@ public class GameViewController : MonoBehaviour {
     {
         Transform shipTransform = FindCardTransformById(ship.CardId);
         Destroy(shipTransform.Find("ConstructionPanel").gameObject);
+    }
+
+    public void RemoveDeadCard(Card card)
+    {
+        Transform cardTransform = FindCardTransformById(card.CardId);
+        Destroy(cardTransform.gameObject);
     }
 
     public void AddGameLogMessage(string message)

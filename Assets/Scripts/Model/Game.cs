@@ -97,6 +97,11 @@ public class Game  {
         ChallengerActionData = "NONE";
     }
 
+    public void StartLaserWeaponResolutionPhase()
+    {
+        ChangeGamePhase(GamePhase.LASER_WEAPON_RESOLUTION);
+    }
+
     private void ChangeGamePhase(GamePhase gamePhase)
     {
         GamePhase = gamePhase;

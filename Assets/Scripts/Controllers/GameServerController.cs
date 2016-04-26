@@ -103,14 +103,103 @@ public class GameServerController : NetworkBehaviour {
         {
             // if both players now submitted, process actions, advance the game state
             ProcessActions(game);
-            game.StartLogisticsResolutionPhase();
 
-            // advance the game to the combat planning stage 
-            // dont send this to clients, they will advance themselves after 
-            // replaying resolution
-            game.StartCombatPlanningPhase();
+            if (game.GamePhase == GamePhase.LOGISTICS_PLANNING)
+            {
+                game.StartLogisticsResolutionPhase();
+
+                // advance the game to the combat planning stage 
+                // dont send this to clients, they will advance themselves after 
+                // replaying resolution
+                game.StartCombatPlanningPhase();
+            }
+            else if (game.GamePhase == GamePhase.COMBAT_PLANNING)
+            {
+                game.StartLaserWeaponResolutionPhase();
+
+                ProcessMissileLaunches(game);
+                ProcessLaserWeapons(game);
+            }
         }
-    }    
+    }
+
+    private void ProcessMissileLaunches(Game game)
+    {
+        // TODO - missile weapons will fire (even if the firing ships is destroyed by laser fire)
+        
+    }
+
+    private void ProcessLaserWeapons(Game game)
+    {
+        // apply damage from all laser weapons
+        ProcessLaserWeaponsForPlayer(game, game.Player, game.Opponent);
+        ProcessLaserWeaponsForPlayer(game, game.Opponent, game.Player);
+
+        // now that all damage has been applied, remove any dead ships
+        DestroyDeadCardsForPlayer(game, game.Player, game.Opponent);
+        DestroyDeadCardsForPlayer(game, game.Opponent, game.Player);
+    }
+
+    private void DestroyDeadCardsForPlayer(Game game, Player player, Player opponent)
+    {
+        foreach (Ship ship in player.Ships)
+        {
+            if (ship.CurrentHealth < 1)
+            {
+                ClearAnythingTargeting(game, ship);
+                player.Ships.Remove(ship);                
+            }
+        }
+
+        foreach (Shipyard shipyard in player.Shipyards)
+        {
+            if (shipyard.CurrentHealth < 1)
+            {
+                ClearAnythingTargeting(game, shipyard);
+                player.Shipyards.Remove(shipyard);
+            }
+        }        
+    }
+
+    private void ClearAnythingTargeting(Game game, IDamageable target)
+    {
+        ClearAnythingTargetingForPlayer(target, game.Player);
+        ClearAnythingTargetingForPlayer(target, game.Opponent);
+    }
+
+    private void ClearAnythingTargetingForPlayer(IDamageable target, Player player)
+    {
+        foreach (Ship ship in player.Ships)
+        {
+            for (int i = 0; i < ship.Weapons.Count; i++)
+            {
+                Weapon weapon = ship.Weapons[i];
+                if (weapon.Target == target)
+                {
+                    weapon.ClearTarget();
+                }
+            }
+        }
+    }
+
+    private void ProcessLaserWeaponsForPlayer(Game game, Player player, Player opponent)
+    {
+        // run through each weapon for each of the players ships and apply damage to the target if its a laser
+        foreach(Ship ship in player.Ships)
+        {
+            foreach(Weapon weapon in ship.Weapons)
+            {
+                if (weapon.WeaponType == WeaponType.LASER // is a laser
+                    && weapon.Target != null              // has a target
+                    && !(weapon.Target is Homeworld))     // target is not a Homeworld (these resolve later)
+                {
+                    weapon.Target.DealDamage(weapon.Damage);
+                    weapon.ClearTarget();                
+                }
+            }
+        }
+
+    }
 
     private void ProcessActions(Game game)
     {
@@ -176,10 +265,47 @@ public class GameServerController : NetworkBehaviour {
                 string operationId = actionData[1];
                 ProcessOperationAction(player, opponent, game, operationId);
                 break;
+            case ActionType.WEAPON_TARGET:
+                shipId = actionData[1];
+                int weaponIndex = int.Parse(actionData[2]);
+                string targetId = actionData[3];
+                ProcessWeaponTargetAction(player, opponent, game, shipId, weaponIndex, targetId);
+                break;
             default:
                 ServerLogError("Unknown action type [" + actionType + "]", game);
                 break;
         }
+    }
+
+    private void ProcessWeaponTargetAction(Player player, Player opponent, Game game, string shipId, int weaponIndex, string targetId)
+    {
+        // find ship
+        Ship ship = (Ship)FindCardIn(shipId, player.Ships);
+
+        // TODO - error if ship not active
+
+        // TODO - error if ship does not have enough weapons (invalid index)
+
+        // find target
+        IDamageable target = null;
+        if (opponent.Deck.Faction.Homeworld.CardId == targetId)
+        {
+            target = opponent.Deck.Faction.Homeworld;
+        }        
+        else if (target == null)
+        {
+            target = FindCardIn(targetId, opponent.Ships);
+        }
+
+        if (target == null)
+        {
+            target = FindCardIn(targetId, opponent.Shipyards);
+        }
+
+        // TODO - error if target is not valid
+
+        // if we get here, all ok, set target
+        ship.Weapons[weaponIndex].SetTarget(target);
     }
 
     private void ProcessOperationAction(Player player, Player opponent, Game game, string operationId)

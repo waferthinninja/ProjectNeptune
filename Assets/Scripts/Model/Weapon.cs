@@ -11,10 +11,16 @@ public class Weapon {
     {
         WeaponType = weaponType;
         Damage = damage;
+        Target = null;
     }
 
     internal void SetTarget(IDamageable target)
     {
         Target = target;
+    }
+
+    internal void ClearTarget()
+    {
+        Target = null;
     }
 }

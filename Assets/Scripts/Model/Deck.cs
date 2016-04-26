@@ -18,7 +18,7 @@ public class Deck {
         List<Shipyard> shipyards = new List<Shipyard>();
         shipyards.Add((Shipyard)CardFactory.CreateCard(CardCodename.SHIPYARD));
         shipyards.Add((Shipyard)CardFactory.CreateCard(CardCodename.SMALL_SHIPYARD));
-        Faction = new Faction("DefaultFaction", 6, 10, 5, shipyards, homeworld);
+        Faction = new Faction("DefaultFaction", 8, 100, 10, shipyards, homeworld);
         AddCard(CardCodename.FRIGATE, 4);
         AddCard(CardCodename.CRUISER, 4);
         AddCard(CardCodename.BATTLESHIP, 4);
