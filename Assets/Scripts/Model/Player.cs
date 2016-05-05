@@ -17,6 +17,7 @@ public class Player {
     public List<PlayableCard> Discard { get; private set; }
     public List<Shipyard> Shipyards { get; private set; }
     public List<Ship> Ships { get; private set; }
+    public List<Missile> Missiles { get; private set; }
     public List<Operation> OngoingOperations { get; private set; }
 
     public Player(string name, int connectionId)
@@ -77,6 +78,7 @@ public class Player {
 
         // initialize lists
         Ships = new List<Ship>();
+        Missiles = new List<Missile>();
         OngoingOperations = new List<Operation>();
         Hand = new List<PlayableCard>();
         Discard = new List<PlayableCard>();             

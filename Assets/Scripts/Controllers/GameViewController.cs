@@ -9,6 +9,7 @@ public class GameViewController : MonoBehaviour {
     private Queue<Transform> _cardPlaceholders;
 
     public CardPrefabFactory CardPrefabFactory;
+    public Transform MissilePrefab;
 
     public Transform TargetSelector;
 
@@ -33,6 +34,7 @@ public class GameViewController : MonoBehaviour {
     public Transform OpponentCardsInDiscardGUI;
     public Transform OpponentConstructionAreaGUI;
     public Transform OpponentShipAreaGUI;
+    public Transform OpponentMissileAreaGUI;
     public Transform PlayerNameGUI;
     public Transform PlayerCreditsGUI;
     public Transform PlayerClicksGUI;
@@ -41,6 +43,7 @@ public class GameViewController : MonoBehaviour {
     public Transform PlayerHandGUI;
     public Transform PlayerConstructionAreaGUI;
     public Transform PlayerShipAreaGUI;
+    public Transform PlayerMissileAreaGUI;
     public Transform GamePhaseGUI;
     
     public Dictionary<string, Transform> _transformById;
@@ -136,6 +139,16 @@ public class GameViewController : MonoBehaviour {
         // position the ship on the shipyard
         shipTransform.SetParent(shipyardTransform);
         shipTransform.localPosition = new Vector3(15, 15, 0);
+    }
+
+    public void SpawnMissile(Missile missile, bool belongsToPlayer)
+    {
+        var missileTransform = Instantiate(MissilePrefab);
+        MissileHandler handler = missileTransform.GetComponent<MissileHandler>();
+        handler.SetTarget((Card)missile.Target);
+
+        var area = (belongsToPlayer ? PlayerMissileAreaGUI : OpponentMissileAreaGUI);
+        missileTransform.SetParent(area);
     }
 
     public void UpdateGamePhase(GamePhase gamePhase)

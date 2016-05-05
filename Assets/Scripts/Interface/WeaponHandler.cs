@@ -63,6 +63,12 @@ public class WeaponHandler : MonoBehaviour {
             // scale and position arrow so it links the weapon to its target
             GameViewController gameView = FindObjectOfType<GameViewController>();
             TargetTransform = gameView._transformById[Target.CardId];
+
+            if (TargetTransform == null)
+            {
+                Debug.Log(string.Format("{0} {1} lost target", Weapon.WeaponType, Weapon.Damage) );
+                return;
+            }
             var vector = TargetTransform.position - this.transform.position;
             Arrow.localPosition = vector / 2;
             Arrow.localScale = new Vector3(3, vector.magnitude, 3);

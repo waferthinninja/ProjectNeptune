@@ -106,7 +106,7 @@ public static class CardData {
 
     public static Dictionary<CardCodename, List<Weapon>> Weapons = new Dictionary<CardCodename, List<Weapon>>
     {
-        { CardCodename.BATTLESHIP, new List<Weapon> { { new Weapon(WeaponType.LASER, 2)}, { new Weapon(WeaponType.LASER, 2) }, { new Weapon(WeaponType.MISSILE, 3) }  } },
+        { CardCodename.BATTLESHIP, new List<Weapon> { { new Weapon(WeaponType.LASER, 2)}, { new Weapon(WeaponType.LASER, 3) }, { new Weapon(WeaponType.MISSILE, 3) }  } },
         { CardCodename.CRUISER, new List<Weapon>() { new Weapon(WeaponType.MISSILE, 3) } },
         { CardCodename.FRIGATE, new List<Weapon>() { new Weapon(WeaponType.LASER, 1) } }
     };

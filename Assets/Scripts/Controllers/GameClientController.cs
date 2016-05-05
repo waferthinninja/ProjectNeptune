@@ -82,6 +82,11 @@ public class GameClientController : NetworkBehaviour {
 
     private void ProcessLaserWeapons()
     {
+
+        // apply damage from all laser weapons
+        LaunchMissilesForPlayer(_game.Player);
+        LaunchMissilesForPlayer(_game.Opponent);
+
         // apply damage from all laser weapons
         ProcessLaserWeaponsForPlayer(_game.Player);
         ProcessLaserWeaponsForPlayer(_game.Opponent);
@@ -89,6 +94,27 @@ public class GameClientController : NetworkBehaviour {
         // now that all damage has been applied, remove any dead ships
         DestroyDeadCardsForPlayer(_game.Player);
         DestroyDeadCardsForPlayer(_game.Opponent);
+    }
+
+    private void LaunchMissilesForPlayer(Player player)
+    {
+        // run through each weapon for each of the players ships and if its a missile, fire it
+        foreach (Ship ship in player.Ships)
+        {
+            foreach (Weapon weapon in ship.Weapons)
+            {
+                if (weapon.WeaponType == WeaponType.MISSILE // is a missile
+                    && weapon.Target != null )             // has a target                    
+                {
+                    Missile missile = new Missile(weapon.Damage);
+                    missile.SetTarget(weapon.Target);   
+                    weapon.ClearTarget();
+
+                    // TODO - spawn in view
+                    GameViewController.SpawnMissile(missile, player==_game.Player);
+                }
+            }
+        }
     }
 
     private void DestroyDeadCardsForPlayer(Player player)
