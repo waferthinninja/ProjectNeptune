@@ -1,31 +1,28 @@
 ﻿using System;
 
-public class Missile : IDamageable {
+public class Missile : DamageableCard {
 
     public int Damage { get; private set; }
-    public string Id { get; private set; }
 
-    public IDamageable Target { get; private set; }
+    public DamageableCard Target { get; private set; }
 
-    public Missile(int damage): this(damage,"")
+
+    public Missile(CardCodename codename) : this (codename, Guid.NewGuid().ToString())
+    { }
+
+    public Missile(CardCodename codename, string cardId) : base (codename, cardId)
     {
-        Id = Guid.NewGuid().ToString();
+        CardType = CardType.MISSILE;        
     }
 
-    public Missile(int damage, string id)
-    {        
+    internal void SetDamage(int damage)
+    {
         Damage = damage;
-        Target = null;
-        Id = id;
     }
 
-    internal void SetTarget(IDamageable target)
+    internal void SetTarget(DamageableCard target)
     {
         Target = target;
     }
-
-    public void DealDamage(int damage)
-    {
-        throw new NotImplementedException();
-    }
+    
 }

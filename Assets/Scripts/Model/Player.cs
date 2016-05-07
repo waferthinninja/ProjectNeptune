@@ -13,8 +13,8 @@ public class Player {
     public Deck Deck { get; private set; } // this is the current deck used during the game itself 
     public int Credits { get; private set;  }
     public int Clicks { get; private set; }
-    public List<PlayableCard> Hand { get; private set; }
-    public List<PlayableCard> Discard { get; private set; }
+    public List<Card> Hand { get; private set; }
+    public List<Card> Discard { get; private set; }
     public List<Shipyard> Shipyards { get; private set; }
     public List<Ship> Ships { get; private set; }
     public List<Missile> Missiles { get; private set; }
@@ -80,8 +80,8 @@ public class Player {
         Ships = new List<Ship>();
         Missiles = new List<Missile>();
         OngoingOperations = new List<Operation>();
-        Hand = new List<PlayableCard>();
-        Discard = new List<PlayableCard>();             
+        Hand = new List<Card>();
+        Discard = new List<Card>();             
     }
 
     public void DrawStartingHand()

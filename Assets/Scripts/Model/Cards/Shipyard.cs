@@ -1,18 +1,13 @@
-﻿using UnityEngine;
-using System.Collections;
-using System;
+﻿using System;
 
 [Serializable()]
-public class Shipyard : PlayableCard, IDamageable {
+public class Shipyard : DamageableCard {
  
     public int MaxSize { get; private set; }
     public int Efficiency { get; private set; } // number of construction tokens removed per turn
 
     public Ship HostedShip { get; private set; }
-
-    public int MaxHealth { get; private set; }
-    public int CurrentHealth { get; private set; }
-
+    
     public Shipyard(CardCodename codename) : this (codename, Guid.NewGuid().ToString())
     { }
 
@@ -20,9 +15,7 @@ public class Shipyard : PlayableCard, IDamageable {
     {
         CardType = CardType.SHIPYARD;
         MaxSize = GetMaxSize();
-        Efficiency = GetEfficiency();        
-        MaxHealth = DetermineMaxHealth();
-        CurrentHealth = MaxHealth;
+        Efficiency = GetEfficiency();
     }    
 
     private int GetEfficiency()
@@ -58,21 +51,5 @@ public class Shipyard : PlayableCard, IDamageable {
     {
         HostedShip = null;
     }
-
-    public void DealDamage(int damage)
-    {
-        throw new NotImplementedException();
-    }
-
-    private int DetermineMaxHealth()
-    {
-        if (CardData.MaxHealths.ContainsKey(CardCodename))
-        {
-            return CardData.MaxHealths[CardCodename];
-        }
-        else
-        {
-            throw new Exception(string.Format("Failed to get health for {0}", CardCodename));
-        }
-    }
+    
 }

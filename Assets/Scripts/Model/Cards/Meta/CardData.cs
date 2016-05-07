@@ -7,6 +7,7 @@ public static class CardData {
     public static Dictionary<CardCodename, CardType> CardTypes = new Dictionary<CardCodename, CardType>
     {
         { CardCodename.UNKNOWN, CardType.UNKNOWN },
+        { CardCodename.MISSILE, CardType.MISSILE },
         { CardCodename.DEFAULT_HOMEWORLD, CardType.HOMEWORLD },
         { CardCodename.SHIPYARD, CardType.SHIPYARD },
         { CardCodename.SMALL_SHIPYARD, CardType.SHIPYARD },
@@ -22,6 +23,7 @@ public static class CardData {
     public static Dictionary<CardCodename, string> CardNames = new Dictionary<CardCodename, string>
     {
         { CardCodename.UNKNOWN, "Unknown" },
+        { CardCodename.MISSILE, "Missile" },
         { CardCodename.DEFAULT_HOMEWORLD, "Homeworld" },
         { CardCodename.SHIPYARD, "Shipyard" },
         { CardCodename.SMALL_SHIPYARD, "Small shipyard" },
@@ -36,6 +38,7 @@ public static class CardData {
     public static Dictionary<CardCodename, string> ImageNames = new Dictionary<CardCodename, string>
     {
         { CardCodename.UNKNOWN, "card" },
+        { CardCodename.MISSILE, "card" },
         { CardCodename.DEFAULT_HOMEWORLD, "card" },
         { CardCodename.SHIPYARD, "shipyard_s" },
         { CardCodename.SMALL_SHIPYARD, "shipyard_s" },
@@ -57,7 +60,7 @@ public static class CardData {
     //playable only data
     public static Dictionary<CardCodename, int> BaseCosts = new Dictionary<CardCodename, int>
     {
-        { CardCodename.UNKNOWN, 99999 },
+        { CardCodename.UNKNOWN, -1 },
         { CardCodename.SHIPYARD, 10 },
         { CardCodename.SMALL_SHIPYARD, 6 },
         { CardCodename.BATTLESHIP, 5 },
@@ -70,7 +73,6 @@ public static class CardData {
 
     public static Dictionary<CardCodename, GamePhase> Phases = new Dictionary<CardCodename, GamePhase>
     {
-        { CardCodename.UNKNOWN, GamePhase.SETUP },  
         { CardCodename.SHIPYARD, GamePhase.LOGISTICS_PLANNING },
         { CardCodename.SMALL_SHIPYARD, GamePhase.LOGISTICS_PLANNING },
         { CardCodename.BATTLESHIP, GamePhase.LOGISTICS_PLANNING },

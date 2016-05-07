@@ -142,7 +142,8 @@ public class GameServerController : NetworkBehaviour {
                 if (weapon.WeaponType == WeaponType.MISSILE // is a missile
                     && weapon.Target != null)             // has a target                    
                 {
-                    Missile missile = new Missile(weapon.Damage);
+                    Missile missile = new Missile(CardCodename.MISSILE);
+                    missile.SetDamage(weapon.Damage);
                     missile.SetTarget(weapon.Target);
                     weapon.ClearTarget();
                 }
@@ -182,13 +183,13 @@ public class GameServerController : NetworkBehaviour {
         }        
     }
 
-    private void ClearAnythingTargeting(Game game, IDamageable target)
+    private void ClearAnythingTargeting(Game game, DamageableCard target)
     {
         ClearAnythingTargetingForPlayer(target, game.Player);
         ClearAnythingTargetingForPlayer(target, game.Opponent);
     }
 
-    private void ClearAnythingTargetingForPlayer(IDamageable target, Player player)
+    private void ClearAnythingTargetingForPlayer(DamageableCard target, Player player)
     {
         foreach (Ship ship in player.Ships)
         {
@@ -301,14 +302,14 @@ public class GameServerController : NetworkBehaviour {
     private void ProcessWeaponTargetAction(Player player, Player opponent, Game game, string shipId, int weaponIndex, string targetId)
     {
         // find ship
-        Ship ship = (Ship)FindCardIn(shipId, player.Ships);
+        Ship ship = FindCardIn(shipId, player.Ships);
 
         // TODO - error if ship not active
 
         // TODO - error if ship does not have enough weapons (invalid index)
 
         // find target
-        IDamageable target = null;
+        DamageableCard target = null;
         if (opponent.Deck.Faction.Homeworld.CardId == targetId)
         {
             target = opponent.Deck.Faction.Homeworld;
@@ -411,7 +412,7 @@ public class GameServerController : NetworkBehaviour {
     void ProcessHostShipAction(Player player, Player opponent, Game game, string shipId, string shipyardId, CardCodename cardCodename)
     {
         // find card and shipyard by their id
-        PlayableCard card = FindCardIn(shipId, player.Hand);//player.Hand.Find(x => x.CardId == cardId);
+        Card card = FindCardIn(shipId, player.Hand);//player.Hand.Find(x => x.CardId == cardId);
         Ship ship = (Ship)card;
         // TODO - error if card not in hand - at the moment we just trust that it is
         // TODO - error if cardCodename is not the same - need to verify this as we pass to opponent on trust otherwise
@@ -501,7 +502,7 @@ public class GameServerController : NetworkBehaviour {
         ChangeClicks(player, -1);
 
         // draw card for player
-        PlayableCard card = player.Deck.Draw();
+        Card card = player.Deck.Draw();
         player.Hand.Add(card);
 
         // send it to the client

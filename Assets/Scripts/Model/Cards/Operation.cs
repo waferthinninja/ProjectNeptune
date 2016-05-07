@@ -1,6 +1,6 @@
 ﻿using System;
 
-public class Operation : PlayableCard {
+public class Operation : Card {
 
     public OperationType OperationType { get; private set;  }
 

@@ -1,6 +1,6 @@
 ﻿using System;
 
-public class UnknownCard : PlayableCard {
+public class UnknownCard : Card {
     public UnknownCard(CardCodename codename) : this (codename, Guid.NewGuid().ToString())
     {
     }

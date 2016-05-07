@@ -1,6 +1,6 @@
 ﻿using System;
 
-public class Strategy : PlayableCard
+public class Strategy : Card
 {
 
     public Strategy(CardCodename codename) : this(codename, Guid.NewGuid().ToString())

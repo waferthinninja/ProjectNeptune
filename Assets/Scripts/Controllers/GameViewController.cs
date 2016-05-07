@@ -61,6 +61,20 @@ public class GameViewController : MonoBehaviour {
         selector.SetParent(PlayerHandGUI.parent);
     }
 
+    public void UpdateHealth(DamageableCard card)
+    {
+        // find the card
+        Transform cardTransform = _transformById[card.CardId];
+
+        // get the health element
+        Transform healthTransform = cardTransform.Find("Health");
+        if (healthTransform != null) // we might not necessarily have this element e.g for missiles
+        {
+            Text healthText = (Text)healthTransform.GetComponent(typeof(Text));
+            healthText.text = string.Format("{0}/{1}", card.CurrentHealth, card.MaxHealth);
+        }
+    }
+
     public void AddHomeworld(Homeworld homeworld, bool belongsToPlayer)
     {
         // instantiate
@@ -218,7 +232,7 @@ public class GameViewController : MonoBehaviour {
         handler.ClearTarget();
     }
 
-    public void SetWeaponTarget(Ship ship, int weaponIndex, IDamageable target)
+    public void SetWeaponTarget(Ship ship, int weaponIndex, DamageableCard target)
     {
         Transform shipTransform = FindCardTransformById(ship.CardId);
         Transform weaponPanel = shipTransform.Find("WeaponsPanel");
@@ -236,7 +250,7 @@ public class GameViewController : MonoBehaviour {
         constructionRemaining.text = ship.ConstructionRemaining.ToString();
     }
 
-    public void AddCardToHand(PlayableCard card, bool replacesUnknown)
+    public void AddCardToHand(Card card, bool replacesUnknown)
     {
         // instantiate the card prefab
         Transform cardPrefab = InstantiateCardPrefab(card, true);
@@ -297,6 +311,17 @@ public class GameViewController : MonoBehaviour {
 
         // store in lookup so we can find it by its id
         _transformById[card.CardId] = cardPrefab;
+       
+        if (card is DamageableCard)
+        {
+            // set the card health
+            UpdateHealth((DamageableCard)card);
+
+            // subscribe to updates 
+            ((DamageableCard)card).RegisterOnHealthChangedCallback(UpdateHealth);
+        }        
+
+        
 
         return cardPrefab;
     }

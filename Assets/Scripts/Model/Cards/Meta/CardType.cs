@@ -5,5 +5,6 @@
     SHIPYARD,
     HOMEWORLD,
     OPERATION,
-    STRATEGY
+    STRATEGY,
+    MISSILE
 }

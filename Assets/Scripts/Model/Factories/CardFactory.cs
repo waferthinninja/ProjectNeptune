@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 public static class CardFactory  {
 
@@ -21,6 +20,8 @@ public static class CardFactory  {
                 return new Homeworld(cardCodename, cardId);
             case CardType.OPERATION:
                 return new Operation(cardCodename, cardId);
+            case CardType.MISSILE:
+                return new Missile(cardCodename, cardId);
             case CardType.UNKNOWN:
                 return new UnknownCard(cardCodename, cardId);
             default:

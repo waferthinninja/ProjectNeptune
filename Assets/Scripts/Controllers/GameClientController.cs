@@ -106,7 +106,8 @@ public class GameClientController : NetworkBehaviour {
                 if (weapon.WeaponType == WeaponType.MISSILE // is a missile
                     && weapon.Target != null )             // has a target                    
                 {
-                    Missile missile = new Missile(weapon.Damage);
+                    Missile missile = new Missile(CardCodename.MISSILE);
+                    missile.SetDamage(weapon.Damage);
                     missile.SetTarget(weapon.Target);   
                     weapon.ClearTarget();
 
@@ -140,13 +141,13 @@ public class GameClientController : NetworkBehaviour {
         }
     }
 
-    private void ClearAnythingTargeting(IDamageable target)
+    private void ClearAnythingTargeting(DamageableCard target)
     {
         ClearAnythingTargetingForPlayer(target, _game.Player);
         ClearAnythingTargetingForPlayer(target, _game.Opponent);
     }
 
-    private void ClearAnythingTargetingForPlayer(IDamageable target, Player player)
+    private void ClearAnythingTargetingForPlayer(DamageableCard target, Player player)
     {
         foreach (Ship ship in player.Ships)
         {
@@ -255,7 +256,7 @@ public class GameClientController : NetworkBehaviour {
         // TODO - error if ship does not have enough weapons (invalid index)
 
         // find target
-        IDamageable target = null;
+        DamageableCard target = null;
         if (_game.Player.Deck.Faction.Homeworld.CardId == targetId)
         {
             target = _game.Player.Deck.Faction.Homeworld;
@@ -457,7 +458,7 @@ public class GameClientController : NetworkBehaviour {
 
         // add to local version of game state 
         CardCodename cardCodename = (CardCodename)Enum.Parse(typeof(CardCodename), cardCodenameData);
-        PlayableCard card = (PlayableCard)CardFactory.CreateCard(cardCodename, cardId);
+        Card card = (Card)CardFactory.CreateCard(cardCodename, cardId);
         _game.Player.Hand.Add(card);
 
         GameViewController.AddCardToHand(card, true);
@@ -692,7 +693,7 @@ public class GameClientController : NetworkBehaviour {
     public bool TryTarget(Ship firer, int weaponIndex, Card target)
     {
         // valid targets will be IDamageable
-        if (target is IDamageable == false)
+        if (target is DamageableCard == false)
         {
             Debug.Log("Target is not damagable");
             return false;
@@ -705,7 +706,7 @@ public class GameClientController : NetworkBehaviour {
         // TODO - check that target belongs to enemy ? (might be possible to fire on own ships?)
 
         // if we get here, all good, target away
-        firer.Weapons[weaponIndex].SetTarget((IDamageable)target);
+        firer.Weapons[weaponIndex].SetTarget((DamageableCard)target);
        
         // TODO - move this to store all weapon targets when submitted (so we dont have to change/remove when retargetting weapons)
         // _actions.Add(new WeaponTargetAction(firer, weaponIndex, (IDamageable)target));

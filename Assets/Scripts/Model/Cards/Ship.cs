@@ -3,17 +3,18 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 
-public class Ship : PlayableCard, IDamageable {
+public class Ship : DamageableCard {
 
     public int Size { get; private set; }
     public int ConstructionRemaining { get; private set; }
     public List<Weapon> Weapons { get; private set; }
-    public int MaxHealth { get; private set; }
-    public int CurrentHealth { get; private set; }
+    public bool IsDeployed { get; private set; } 
+
+    private Action<Ship> OnDeploy;
+    private Action<Ship> OnConstructionChanged;
 
     public Ship(CardCodename codename) : this (codename, Guid.NewGuid().ToString())
-    {
-        
+    {        
     }
 
     public Ship(CardCodename codename, string cardId) : base (codename, cardId)
@@ -21,20 +22,7 @@ public class Ship : PlayableCard, IDamageable {
         CardType = CardType.SHIP;
         Size = DetermineSize();
         Weapons = DetermineWeapons();
-        MaxHealth = DetermineMaxHealth();
-        CurrentHealth = MaxHealth;
-    }
-
-    private int DetermineMaxHealth()
-    {
-        if (CardData.MaxHealths.ContainsKey(CardCodename))
-        {
-            return CardData.MaxHealths[CardCodename];
-        }
-        else
-        {
-            throw new Exception(string.Format("Failed to get health for {0}", CardCodename));
-        }
+        IsDeployed = false;
     }
 
     private int DetermineSize()
@@ -64,6 +52,10 @@ public class Ship : PlayableCard, IDamageable {
     public void StartConstruction()
     {
         ConstructionRemaining = Size;
+        if (OnConstructionChanged != null)
+        {
+            OnConstructionChanged(this);
+        }
     }
 
     public void AdvanceConstruction(int workDone)
@@ -71,10 +63,29 @@ public class Ship : PlayableCard, IDamageable {
         ConstructionRemaining -= workDone;
         if (ConstructionRemaining < 0)
             ConstructionRemaining = 0;
+
+        if (OnConstructionChanged != null)
+        {
+
+        }
     }
 
-    public void DealDamage(int damage)
+    public void Deploy()
     {
-        CurrentHealth -= damage;
+        IsDeployed = true;
+        if (OnDeploy != null)
+        {
+            OnDeploy(this);
+        }
+    }
+
+    public void RegisterOnDeployCallback(Action<Ship> onDeploy)
+    {
+        OnDeploy += onDeploy;
+    }
+
+    public void RegisterOnConstructionChangedCallback(Action<Ship> onConstructionChanged)
+    {
+        OnConstructionChanged += onConstructionChanged;
     }
 }

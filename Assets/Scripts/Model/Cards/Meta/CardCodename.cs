@@ -1,6 +1,7 @@
 ﻿public enum CardCodename
 {
     UNKNOWN,
+    MISSILE,
     DEFAULT_HOMEWORLD,
     FRIGATE,
     CRUISER,

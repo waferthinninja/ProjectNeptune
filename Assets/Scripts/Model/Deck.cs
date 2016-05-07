@@ -7,18 +7,18 @@ using System.Text;
 public class Deck {
 
     public Faction Faction { get; private set; }
-    private List<PlayableCard> _cards;
+    private List<Card> _cards;
 
     public Deck()
     {
-        _cards = new List<PlayableCard>();
+        _cards = new List<Card>();
 
         // temp hard coded deck
         Homeworld homeworld = (Homeworld)CardFactory.CreateCard(CardCodename.DEFAULT_HOMEWORLD);
         List<Shipyard> shipyards = new List<Shipyard>();
         shipyards.Add((Shipyard)CardFactory.CreateCard(CardCodename.SHIPYARD));
         shipyards.Add((Shipyard)CardFactory.CreateCard(CardCodename.SMALL_SHIPYARD));
-        Faction = new Faction("DefaultFaction", 8, 100, 10, shipyards, homeworld);
+        Faction = new Faction("DefaultFaction", 6, 20, 6, shipyards, homeworld);
         AddCard(CardCodename.FRIGATE, 4);
         AddCard(CardCodename.CRUISER, 4);
         AddCard(CardCodename.BATTLESHIP, 4);
@@ -38,11 +38,11 @@ public class Deck {
     {
         for (int i = 0; i < count; i++)
         {
-            _cards.Add((PlayableCard)CardFactory.CreateCard(CardCodename));            
+            _cards.Add((Card)CardFactory.CreateCard(CardCodename));            
         }
     }    
 
-    public PlayableCard Draw()
+    public Card Draw()
     {
         if(_cards.Count < 1)
         {
@@ -50,7 +50,7 @@ public class Deck {
             return null;
         }
 
-        PlayableCard c = _cards[0];
+        Card c = _cards[0];
         _cards.RemoveAt(0);
         return c;
     }
@@ -65,13 +65,13 @@ public class Deck {
         string[] data = dataStr.Split('#');
         Faction = new Faction(data[0]);
 
-        _cards = new List<PlayableCard>();
+        _cards = new List<Card>();
         string[] cardData = data[1].Split('|');
         int numCards = int.Parse(cardData[0]);
 
         for (int i = 0; i < numCards; i++)
         {
-            PlayableCard card = (PlayableCard)CardFactory.CreateCard((CardCodename)Enum.Parse(typeof(CardCodename), cardData[1 + (i * 2)]), cardData[2 + (i * 2)]);
+            Card card = (Card)CardFactory.CreateCard((CardCodename)Enum.Parse(typeof(CardCodename), cardData[1 + (i * 2)]), cardData[2 + (i * 2)]);
             _cards.Add(card);
         }
     }

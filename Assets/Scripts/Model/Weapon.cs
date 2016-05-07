@@ -5,7 +5,7 @@ public class Weapon {
     public WeaponType WeaponType { get; private set; }
     public int Damage { get; private set; }
 
-    public IDamageable Target { get; private set; }
+    public DamageableCard Target { get; private set; }
 
     public Weapon (WeaponType weaponType, int damage)
     {
@@ -14,7 +14,7 @@ public class Weapon {
         Target = null;
     }
 
-    internal void SetTarget(IDamageable target)
+    internal void SetTarget(DamageableCard target)
     {
         Target = target;
     }

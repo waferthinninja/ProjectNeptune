@@ -9,9 +9,10 @@ public class CardPrefabFactory : MonoBehaviour {
     public Transform ShipyardPrefab;
     public Transform HomeworldPrefab;
     public Transform OperationPrefab;
+    public Transform MissilePrefab;
 
     public Transform WeaponPrefab;
-
+    
     public Transform CreateCardPrefab(Card card, bool belongsToPlayer)
     {
         //Debug.Log("Creating prefab of " + card.CardCodename);
@@ -33,6 +34,9 @@ public class CardPrefabFactory : MonoBehaviour {
             case CardType.OPERATION:
                 transform = CreateOperationPrefab(card);
                 break;
+            case CardType.MISSILE:
+                transform = CreateMissilePrefab(card);
+                break;
             default:
                 throw new Exception("Invalid card type");
         }
@@ -52,10 +56,10 @@ public class CardPrefabFactory : MonoBehaviour {
         var cardText = (Text)transform.Find("CardText").GetComponent(typeof(Text));
         cardText.text = card.CardText;
 
-        if (card is PlayableCard)
+        if (card.BaseCost > 0) // don't really like, but for now non-playable cards have cost = -1
         {
             var cardCost = (Text)transform.Find("Cost").GetComponent(typeof(Text));
-            cardCost.text = ((PlayableCard)card).BaseCost.ToString();
+            cardCost.text = card.BaseCost.ToString();
         }
 
         return transform;
@@ -80,10 +84,7 @@ public class CardPrefabFactory : MonoBehaviour {
         Transform transform = Instantiate(HomeworldPrefab);
 
         Homeworld homeworld = (Homeworld)card;
-
-        var health = (Text)transform.Find("Health").GetComponent(typeof(Text));
-        health.text = string.Format("{0}/{1}", homeworld.CurrentHealth, homeworld.MaxHealth);
-
+        
         return transform;
     }
 
@@ -96,10 +97,7 @@ public class CardPrefabFactory : MonoBehaviour {
 
         var name = (Text)transform.Find("Size").GetComponent(typeof(Text));
         name.text = ship.Size.ToString();
-
-        var health = (Text)transform.Find("Health").GetComponent(typeof(Text));
-        health.text = string.Format("{0}/{1}", ship.CurrentHealth, ship.MaxHealth);
-
+        
         // add weapons
         var weaponsPanel = transform.Find("WeaponsPanel");
         for (int i = 0; i < ship.Weapons.Count; i++)
@@ -131,9 +129,17 @@ public class CardPrefabFactory : MonoBehaviour {
         var efficiency = (Text)transform.Find("Efficiency").GetComponent(typeof(Text));
         efficiency.text = shipyard.Efficiency.ToString();
         
-        var health = (Text)transform.Find("Health").GetComponent(typeof(Text));
-        health.text = string.Format("{0}/{1}", shipyard.CurrentHealth, shipyard.MaxHealth);
+        return transform;
+    }
 
+    private Transform CreateMissilePrefab(Card card)
+    {
+        Transform transform = Instantiate(MissilePrefab);
+        Missile missile = (Missile)card;
+
+        var damage = (Text)transform.Find("Damage").GetComponent(typeof(Text));
+        damage.text = missile.Damage.ToString();
+        
         return transform;
     }
 }

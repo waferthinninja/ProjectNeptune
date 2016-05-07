@@ -1,5 +1,6 @@
 ﻿public enum GamePhase
 {
+    NONE,
     AWAITING_CHALLENGER,
     SETUP,
     UPKEEP,
